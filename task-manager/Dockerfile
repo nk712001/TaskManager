@@ -5,7 +5,7 @@ FROM eclipse-temurin:21-jdk-alpine as builder
 WORKDIR /app
 
 # Copy Maven wrapper and pom.xml
-COPY mvnw* pom.xml .
+COPY mvnw* pom.xml
 COPY .mvn .mvn
 
 # Copy source code
