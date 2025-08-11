@@ -1,4 +1,4 @@
-# Implementation Plan: Task Manager Backend APIs (Spring Boot)
+# Implementation Plan: Task Manager Backend APIs (Spring Boot, Dockerized)
 
 ## 1. Project Initialization
 **Step 1.1:** Initialize a new Spring Boot 3.x project with Java 17+ using Spring Initializr or your preferred method.
@@ -8,17 +8,24 @@
 - spring-boot-starter-web
 - spring-boot-starter-data-jpa
 - spring-boot-starter-security
-- mysql-connector-j (or your chosen DB driver)
+- postgresql (or your chosen DB driver)
 - jjwt-api, jjwt-impl, jjwt-jackson
 - lombok (optional)
 - **Test:** Run `mvn clean install` and ensure all dependencies are resolved with no errors.
 
+## 1a. Docker Setup
+**Step 1a.1:** Create a `Dockerfile` to containerize the Spring Boot application.
+- **Test:** Build the Docker image using `docker build .` and verify the image is created.
+
+**Step 1a.2:** Create a `docker-compose.yml` to orchestrate the Spring Boot app and a PostgreSQL database.
+- **Test:** Run `docker-compose up` and verify both containers start and the app connects to the DB.
+
 ## 2. Database & Application Configuration
-**Step 2.1:** Configure `application.properties` (or `application.yml`) for DB connection, JPA, and JWT settings.
-- **Test:** Start the app and confirm it connects to the database without errors.
+**Step 2.1:** Configure `application.properties` (or `application.yml`) for DB connection, JPA, and JWT settings. Use environment variables in your configuration to allow Docker Compose to inject DB credentials and connection info (e.g., `spring.datasource.url=jdbc:postgresql://${DB_HOST:db}:${DB_PORT:5432}/${DB_NAME:task_manager_db}` etc.).
+- **Test:** Start the app (locally or via Docker Compose) and confirm it connects to the database without errors.
 
 **Step 2.2:** Set up the database schema (manually or using JPA auto-ddl).
-- **Test:** Check that the required tables are created in the database after starting the app.
+- **Test:** Check that the required tables are created in the database after starting the app (in Docker Compose environment).
 
 ## 3. Entity & Repository Layer
 **Step 3.1:** Create JPA entities: User, Role, Project, Task, with specified fields and relationships.
@@ -78,4 +85,9 @@
 
 ## 12. Documentation
 **Step 12.1:** Document all endpoints, request/response formats, and authentication flow (use Swagger/OpenAPI if desired).
+
+## 13. Docker & Deployment
+**Step 13.1:** Document how to build and run the project using Docker and Docker Compose, including environment variable setup for DB credentials.
+- **Test:** Follow the documentation to spin up the stack from scratch using Docker Compose and verify all services are healthy and the API is accessible.
+
 - **Test:** Access the documentation and verify all endpoints and models are described.
