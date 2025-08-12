@@ -87,7 +87,7 @@ public class ProjectController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{projectId}/tasks")
-    public ResponseEntity<TaskDTO> createTaskForProject(@PathVariable Long projectId, @RequestBody TaskDTO taskDTO) {
+    public ResponseEntity<TaskDTO> createTaskForProject(@PathVariable Long projectId, @RequestBody @jakarta.validation.Valid TaskDTO taskDTO) {
         Optional<Project> projectOpt = projectService.getProjectById(projectId);
         if (projectOpt.isEmpty()) {
             return ResponseEntity.notFound().build();

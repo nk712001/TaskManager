@@ -2,11 +2,22 @@ package com.example.taskmanager.dto;
 
 import java.util.Set;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 public class ProjectDTO {
     private Long id;
+    @NotBlank(message = "Project name is required")
+    @Size(max = 100, message = "Project name cannot exceed 100 characters")
     private String name;
+
+    @Size(max = 500, message = "Description cannot exceed 500 characters")
     private String description;
+
+    @NotNull(message = "Owner ID is required")
     private Long ownerId;
+
     private Set<TaskDTO> tasks;
 
     public ProjectDTO() {}

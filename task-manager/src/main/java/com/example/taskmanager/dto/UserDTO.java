@@ -2,9 +2,17 @@ package com.example.taskmanager.dto;
 
 import java.util.Set;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 public class UserDTO {
     private Long id;
+    @NotBlank(message = "Username is required")
+    @Size(max = 50, message = "Username cannot exceed 50 characters")
     private String username;
+
+    @NotNull(message = "Roles are required")
     private Set<String> roles;
 
     public UserDTO() {}

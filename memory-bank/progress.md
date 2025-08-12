@@ -33,6 +33,31 @@
 
 ## Step 10: Task Endpoints
 
+---
+
+## Step 11: Exception Handling & Validation
+
+### What was done
+- Added `jakarta.validation` annotations (`@NotBlank`, `@NotNull`, `@Size`) to `ProjectDTO`, `TaskDTO`, and `UserDTO` to enforce required fields and sensible length constraints.
+- Updated `ProjectController#createTaskForProject` to use `@Valid` on the `TaskDTO` parameter, ensuring validation is enforced for incoming requests.
+- Verified that `GlobalExceptionHandler.java` provides robust handling for:
+  - Resource not found (404)
+  - Validation errors (400, with field-level error details)
+  - All other exceptions (500)
+
+### Test validation
+- Ran `mvn clean install` and `mvn test` successfully. Build and tests passed with no errors.
+- Validation errors for missing or invalid fields now return clear 400 Bad Request responses with detailed error messages.
+
+### Notes for future developers
+- Always use validation annotations on DTOs to ensure only valid data is accepted by your API.
+- Use `@Valid` on controller method parameters where DTOs are accepted via `@RequestBody`.
+- The global exception handler will automatically catch and return validation and resource errors in a consistent format.
+- Extend validation rules as needed for new DTO fields or business requirements.
+
+---
+
+
 ### What was done
 - Added project-scoped task endpoints to `ProjectController.java`:
   - `GET /api/v1/projects/{projectId}/tasks`: Returns all tasks for a given project (authenticated users).

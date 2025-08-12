@@ -46,6 +46,10 @@ Each repository extends `JpaRepository`, leveraging Spring Data features for con
 
 
 ### DTO Package and Mapping Utility
+- All DTOs now use `jakarta.validation` annotations (e.g., `@NotBlank`, `@NotNull`, `@Size`) to enforce required fields and sensible value constraints. This ensures that only valid data is accepted by the API, and validation errors are handled consistently.
+- Controllers use `@Valid` on DTO parameters to trigger validation automatically.
+- Validation errors are caught by the global exception handler and returned as structured 400 Bad Request responses with field-level error details.
+
 - **dto/**: Contains Data Transfer Object classes for API request/response payloads, ensuring entities are not exposed directly and sensitive/internal fields are never leaked.
   - **UserDTO.java**: Represents a user for API communication. Includes only id, username, and roles.
   - **ProjectDTO.java**: Represents a project for API communication. Includes id, name, description, ownerId, and a set of associated TaskDTOs.
@@ -54,6 +58,13 @@ Each repository extends `JpaRepository`, leveraging Spring Data features for con
 
 **Rationale**: Using DTOs decouples the internal data model from the API, making the application more secure and flexible for future changes. The mapping utility can be refactored to use a library like MapStruct if mapping logic becomes complex.
 
+
+### Exception Handling
+- **GlobalExceptionHandler.java**: Centralizes exception handling for the entire application. Handles:
+  - `ResourceNotFoundException`: Returns 404 Not Found with a clear error message.
+  - `MethodArgumentNotValidException`: Returns 400 Bad Request with detailed validation error messages for each invalid field.
+  - All other exceptions: Returns 500 Internal Server Error with a generic error message.
+- This approach ensures clients always receive meaningful, consistent error responses.
 
 ### Service Layer
 - **service/**: Contains service classes that encapsulate business logic and act as the intermediary between controllers and repositories. This layer ensures that controllers remain thin and all business rules and transactional logic are centralized.

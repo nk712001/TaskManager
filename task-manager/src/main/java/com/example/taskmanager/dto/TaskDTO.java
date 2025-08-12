@@ -1,10 +1,22 @@
 package com.example.taskmanager.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 public class TaskDTO {
     private Long id;
+    @NotBlank(message = "Task title is required")
+    @Size(max = 100, message = "Task title cannot exceed 100 characters")
     private String title;
+
+    @Size(max = 500, message = "Description cannot exceed 500 characters")
     private String description;
+
+    @NotBlank(message = "Status is required")
     private String status;
+
+    @NotNull(message = "Project ID is required")
     private Long projectId;
 
     public TaskDTO() {}
