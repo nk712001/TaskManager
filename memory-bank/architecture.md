@@ -9,6 +9,22 @@ task-manager/
 ├── Dockerfile                  # Containerizes the Spring Boot app
 ├── docker-compose.yml          # Orchestrates app + PostgreSQL containers
 └── src/
+```
+
+### Docker & Deployment Architecture
+- **Dockerfile**: Uses a multi-stage build to compile and package the Spring Boot application into a lightweight container image. Ensures consistent builds and easy deployment across environments.
+- **docker-compose.yml**: Defines two main services:
+  - **app**: The Spring Boot backend, built from the Dockerfile. Exposes port 8080 (default) and depends on the database.
+  - **db**: PostgreSQL database, with environment variables for database name, user, and password. Includes health checks and persistent storage.
+- **Environment Variables**: `application.properties` is configured to read DB credentials and connection info from environment variables, allowing seamless switching between local and Dockerized deployments.
+- **Developer Workflow**:
+  - For local development, developers can run the backend directly from their IDE or use Docker Compose for a production-like environment.
+  - For production/staging, always use Docker Compose to ensure consistency, isolation, and easy scaling.
+  - Health checks and logs help monitor service status and troubleshoot issues quickly.
+- **Best Practices**:
+  - Keep `docker-compose.yml` and environment variables updated as the application evolves.
+  - Use `.env` files for sensitive or environment-specific configuration.
+  - Regularly verify that the stack builds and runs cleanly using `docker-compose up`.
     └── main/
         └── java/
             └── com/
@@ -92,6 +108,18 @@ Each repository extends `JpaRepository`, leveraging Spring Data features for con
   - All endpoints, request/response formats, and DTO schemas are documented automatically based on Spring annotations and code structure.
   - Documentation is always in sync with the codebase; any changes to controllers, DTOs, or models are reflected immediately in the docs.
   - Developers can enhance endpoint documentation using Javadoc comments or Spring annotations (e.g., `@Operation`, `@Parameter`) for more detailed descriptions if needed.
+
+**How it works:**
+- The `springdoc-openapi-starter-webmvc-ui` dependency in `pom.xml` enables auto-discovery of all REST controllers and DTOs.
+- No manual configuration is needed for basic API docs; all endpoints are exposed automatically.
+- To view the documentation, start the application and visit `/swagger-ui.html` in your browser.
+- The OpenAPI JSON spec is available at `/v3/api-docs` for integration or client code generation.
+
+**Maintaining/Enhancing Documentation:**
+- As you add or modify endpoints, Springdoc will automatically update the docs.
+- For richer documentation, use Javadoc comments or add Springdoc annotations (e.g., `@Operation`, `@Parameter`) to controllers and DTOs.
+- Always verify the Swagger UI after making changes to ensure the documentation is accurate and up to date.
+- Swagger UI is the primary tool for communicating the API structure and authentication flow to other developers and API consumers.
 
 #### JWT Authentication Filter & Utility
 - **JwtAuthenticationFilter.java**: A custom filter that intercepts each HTTP request before it reaches protected endpoints. It:

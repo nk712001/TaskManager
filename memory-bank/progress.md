@@ -58,6 +58,55 @@
 ## Step 11: Exception Handling & Validation
 
 ### What was done
+
+---
+
+## Step 12: API Documentation (Swagger/OpenAPI)
+
+### What was done
+- Verified that the `springdoc-openapi-starter-webmvc-ui` dependency is present in `pom.xml`.
+- Confirmed that all controllers and DTOs are automatically documented via Springdoc.
+- Ensured that Swagger UI (`/swagger-ui.html` or `/swagger-ui/index.html`) and OpenAPI JSON (`/v3/api-docs`) endpoints are available when the app is running.
+- No manual configuration required for basic documentation; all endpoints and models are exposed automatically.
+
+### Test validation
+- Ran the application and accessed the Swagger UI to confirm all endpoints, request/response formats, and authentication flows are documented and up-to-date.
+
+### Notes for future developers
+- Enhance endpoint documentation by adding Javadoc comments or Spring annotations (e.g., `@Operation`, `@Parameter`) in controllers and DTOs for more detailed descriptions.
+- Keep the documentation in sync with code changes; Springdoc will auto-update as you modify or add endpoints/models.
+- Swagger UI is the primary source of truth for API documentation and should be verified after significant changes.
+
+---
+
+## Step 13: Docker & Deployment
+
+### What was done
+- Created a `Dockerfile` to containerize the Spring Boot application using a multi-stage build.
+- Added a `docker-compose.yml` to orchestrate both the application and a PostgreSQL database as services.
+- Configured `application.properties` to use environment variables for DB credentials and connection info, supporting both local and Docker environments.
+- Verified that the Docker image builds successfully and both containers start and communicate correctly.
+- Ensured health checks and environment variables are set up in `docker-compose.yml` for seamless integration.
+
+### Test validation
+- Ran `docker-compose up` from the project root. Confirmed both the app and database containers start, connect, and remain healthy.
+- Accessed the API and Swagger UI from the running container to verify the application is fully functional in the Dockerized environment.
+- Used environment variables to override DB credentials and confirmed the app connects to the correct database instance.
+
+### Notes for future developers
+- To build and run the stack from scratch, use:
+  1. `docker-compose build` (optional, to force rebuild)
+  2. `docker-compose up`
+- The app will be available at the port specified in `docker-compose.yml` (default is usually 8080).
+- Update environment variables in `docker-compose.yml` or use `.env` files as needed for your deployment scenario.
+- Always verify the health of both containers and check logs for errors if the app fails to start.
+- For local development, you may run the backend outside Docker, but production/staging should use the full Docker Compose stack for consistency.
+
+---
+
+## Step 14: <next step placeholder>
+
+### What was done
 - Added `jakarta.validation` annotations (`@NotBlank`, `@NotNull`, `@Size`) to `ProjectDTO`, `TaskDTO`, and `UserDTO` to enforce required fields and sensible length constraints.
 - Updated `ProjectController#createTaskForProject` to use `@Valid` on the `TaskDTO` parameter, ensuring validation is enforced for incoming requests.
 - Verified that `GlobalExceptionHandler.java` provides robust handling for:

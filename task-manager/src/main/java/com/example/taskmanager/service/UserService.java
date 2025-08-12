@@ -35,18 +35,33 @@ public class UserService {
     }
 
     public User createUser(User user) {
-        // Assign default USER role if not set
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+        java.util.Set<com.example.taskmanager.entities.Role> persistentRoles = new java.util.HashSet<>();
+        java.util.Set<com.example.taskmanager.entities.Role> incomingRoles = user.getRoles();
+
+        if (incomingRoles == null || incomingRoles.isEmpty()) {
             com.example.taskmanager.entities.Role userRole = roleRepository.findByName("USER")
                 .orElseGet(() -> {
                     com.example.taskmanager.entities.Role newRole = new com.example.taskmanager.entities.Role();
                     newRole.setName("USER");
                     return roleRepository.save(newRole);
                 });
-            java.util.Set<com.example.taskmanager.entities.Role> roles = new java.util.HashSet<>();
-            roles.add(userRole);
-            user.setRoles(roles);
+            persistentRoles.add(userRole);
+        } else {
+            for (com.example.taskmanager.entities.Role r : incomingRoles) {
+                com.example.taskmanager.entities.Role role = null;
+                if (r.getId() != null) {
+                    role = roleRepository.findById(r.getId())
+                        .orElseThrow(() -> new RuntimeException("Role not found: id=" + r.getId()));
+                } else if (r.getName() != null) {
+                    role = roleRepository.findByName(r.getName())
+                        .orElseThrow(() -> new RuntimeException("Role not found: name=" + r.getName()));
+                }
+                if (role != null) {
+                    persistentRoles.add(role);
+                }
+            }
         }
+        user.setRoles(persistentRoles);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
