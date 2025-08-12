@@ -33,6 +33,26 @@
 
 ## Step 10: Task Endpoints
 
+### What was done
+- Implemented single-task endpoints in `TaskController.java`:
+  - `GET /api/v1/tasks/{taskId}`: Returns a single task by ID for authenticated users.
+  - `PUT /api/v1/tasks/{taskId}`: Updates a task by ID.
+  - `DELETE /api/v1/tasks/{taskId}`: Deletes a task by ID.
+- All endpoints use DTO mapping via `EntityToDTOMapper` to ensure entities are not exposed directly in API responses.
+- Security is enforced globally for access to these endpoints.
+- The service layer (`TaskService.java`) handles all business logic and persistence.
+
+### Test validation
+- Confirmed via test suite:
+  - All endpoints return correct data and enforce access control.
+  - DTOs are used for all API responses.
+  - CRUD operations for tasks are fully functional and secure.
+
+### Notes for future developers
+- Extend `TaskController` for additional task-related features as needed.
+- Always use DTOs for API responses to avoid leaking sensitive/internal data.
+- Update security configuration and controller annotations if access rules change.
+
 ---
 
 ## Step 11: Exception Handling & Validation

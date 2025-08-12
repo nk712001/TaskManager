@@ -85,6 +85,14 @@ Each repository extends `JpaRepository`, leveraging Spring Data features for con
   - Role-based restrictions for POST/PUT/DELETE on project endpoints are enforced using method-level annotations (e.g., `@PreAuthorize("hasRole('ADMIN')")`) in the controllers, not in the filter chain.
   - Registers the `JwtAuthenticationFilter` to enable JWT-based stateless authentication for protected endpoints.
 
+### API Documentation (Swagger/OpenAPI)
+- **springdoc-openapi**: The project uses the `springdoc-openapi-starter-webmvc-ui` dependency to auto-generate OpenAPI documentation and provide a Swagger UI interface for all REST endpoints.
+  - **Swagger UI** is available at `/swagger-ui.html` or `/swagger-ui/index.html` when the application is running.
+  - **OpenAPI JSON** is available at `/v3/api-docs` for machine-readable API specs.
+  - All endpoints, request/response formats, and DTO schemas are documented automatically based on Spring annotations and code structure.
+  - Documentation is always in sync with the codebase; any changes to controllers, DTOs, or models are reflected immediately in the docs.
+  - Developers can enhance endpoint documentation using Javadoc comments or Spring annotations (e.g., `@Operation`, `@Parameter`) for more detailed descriptions if needed.
+
 #### JWT Authentication Filter & Utility
 - **JwtAuthenticationFilter.java**: A custom filter that intercepts each HTTP request before it reaches protected endpoints. It:
   - Extracts the JWT from the `Authorization` header (if present).
@@ -108,6 +116,15 @@ Each repository extends `JpaRepository`, leveraging Spring Data features for con
   - **ProjectController.java**: Manages `/api/v1/projects` endpoints for project CRUD operations and project-scoped task management.
     - `GET /api/v1/projects`: Returns all projects for authenticated users. Access is controlled by security configuration.
     - `GET /api/v1/projects/{projectId}`: Returns a single project by ID for authenticated users. Access is controlled by security configuration.
+  - **TaskController.java**: Handles `/api/v1/tasks` endpoints for single-task CRUD operations (not scoped to a project endpoint). Implements:
+    - `GET /api/v1/tasks/{taskId}`: Returns a single task by ID for authenticated users.
+    - `PUT /api/v1/tasks/{taskId}`: Updates a task by ID.
+    - `DELETE /api/v1/tasks/{taskId}`: Deletes a task by ID.
+    - All endpoints use DTOs for request/response payloads to ensure entities are never exposed directly.
+    - Security is enforced globally for access to these endpoints (authenticated users only).
+
+### Service Layer (Task)
+- **TaskService.java**: Provides business logic and persistence for all task operations, both project-scoped and single-task. Ensures transactional integrity and centralizes all rules for task management. Used by both `ProjectController` and `TaskController`.
     - `POST /api/v1/projects`: Creates a new project. Access is restricted to users with the ADMIN role via `@PreAuthorize("hasRole('ADMIN')")`.
     - `GET /api/v1/projects/{projectId}/tasks`: Returns all tasks for a given project. This endpoint is placed in `ProjectController` to reflect the parent-child relationship between projects and tasks, making the API more RESTful and discoverable. Only authenticated users can access.
     - `POST /api/v1/projects/{projectId}/tasks`: Creates a new task for a specific project. Restricted to ADMIN users. The endpoint sets the project-task relationship explicitly and delegates persistence to `TaskService`.
