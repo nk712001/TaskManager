@@ -45,17 +45,16 @@
   - Validation errors (400, with field-level error details)
   - All other exceptions (500)
 
-### Test validation
-- Ran `mvn clean install` and `mvn test` successfully. Build and tests passed with no errors.
-- Validation errors for missing or invalid fields now return clear 400 Bad Request responses with detailed error messages.
+### Build & Test Validation (Step 12)
+- Fixed duplicate and malformed dependencies in `pom.xml`. Cleaned up `<dependencies>` section and ensured all tags were properly closed.
+- Ran `mvn clean install` and `mvn test` successfully after the fix. Build and all tests passed with exit code 0.
+- Validation and exception handling improvements (from Step 11) are now confirmed stable in the codebase.
+- Documentation (progress and architecture files) updated to reflect the latest implementation and validation status.
 
 ### Notes for future developers
-- Always use validation annotations on DTOs to ensure only valid data is accepted by your API.
-- Use `@Valid` on controller method parameters where DTOs are accepted via `@RequestBody`.
-- The global exception handler will automatically catch and return validation and resource errors in a consistent format.
-- Extend validation rules as needed for new DTO fields or business requirements.
-
----
+- If you encounter Maven build errors, carefully check for duplicate or malformed dependencies in `pom.xml`.
+- Always run a clean build (`mvn clean install`) after making dependency or configuration changes.
+- Validation and exception handling are now robust and should be extended for new DTOs or endpoints as needed.
 
 
 ### What was done

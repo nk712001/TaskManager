@@ -45,10 +45,12 @@ Each entity is annotated with JPA annotations for persistence and Lombok annotat
 Each repository extends `JpaRepository`, leveraging Spring Data features for concise, type-safe database access. Custom query methods can be added as needed for advanced queries.
 
 
-### DTO Package and Mapping Utility
-- All DTOs now use `jakarta.validation` annotations (e.g., `@NotBlank`, `@NotNull`, `@Size`) to enforce required fields and sensible value constraints. This ensures that only valid data is accepted by the API, and validation errors are handled consistently.
-- Controllers use `@Valid` on DTO parameters to trigger validation automatically.
-- Validation errors are caught by the global exception handler and returned as structured 400 Bad Request responses with field-level error details.
+### Validation, Exception Handling, and Build Pipeline (August 2025)
+- The DTOs use `jakarta.validation` annotations to enforce data integrity, and all controllers use `@Valid` to trigger validation.
+- The `GlobalExceptionHandler` ensures consistent error responses for validation, resource not found, and generic exceptions.
+- After fixing duplicate and malformed dependencies in `pom.xml`, the Maven build and test pipeline is stable and reliable.
+- Always maintain dependency hygiene in `pom.xml` and run `mvn clean install` after any configuration or dependency changes to avoid build issues.
+- The documentation (progress and architecture files) is up to date as of this step and should be kept current as the project evolves.
 
 - **dto/**: Contains Data Transfer Object classes for API request/response payloads, ensuring entities are not exposed directly and sensitive/internal fields are never leaked.
   - **UserDTO.java**: Represents a user for API communication. Includes only id, username, and roles.
