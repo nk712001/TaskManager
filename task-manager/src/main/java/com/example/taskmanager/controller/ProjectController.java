@@ -18,15 +18,20 @@ import java.util.stream.Collectors;
 import com.example.taskmanager.dto.ProjectDTO;
 import com.example.taskmanager.dto.EntityToDTOMapper;
 import com.example.taskmanager.entities.Project;
+import com.example.taskmanager.entities.Task;
+import com.example.taskmanager.dto.TaskDTO;
+import com.example.taskmanager.service.TaskService;
 
 @RestController
 @RequestMapping("/api/v1/projects")
 public class ProjectController {
     private final ProjectService projectService;
+    private final TaskService taskService;
 
     @Autowired
-    public ProjectController(ProjectService projectService) {
+    public ProjectController(ProjectService projectService, TaskService taskService) {
         this.projectService = projectService;
+        this.taskService = taskService;
     }
 
     @GetMapping
@@ -65,5 +70,35 @@ public class ProjectController {
     public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
         projectService.deleteProject(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{projectId}/tasks")
+    public ResponseEntity<List<TaskDTO>> getTasksByProject(@PathVariable Long projectId) {
+        Optional<Project> projectOpt = projectService.getProjectById(projectId);
+        if (projectOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        List<TaskDTO> tasks = projectOpt.get().getTasks()
+                .stream()
+                .map(EntityToDTOMapper::toTaskDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(tasks);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{projectId}/tasks")
+    public ResponseEntity<TaskDTO> createTaskForProject(@PathVariable Long projectId, @RequestBody TaskDTO taskDTO) {
+        Optional<Project> projectOpt = projectService.getProjectById(projectId);
+        if (projectOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Project project = projectOpt.get();
+        Task task = new Task();
+        task.setTitle(taskDTO.getTitle());
+        task.setDescription(taskDTO.getDescription());
+        task.setStatus(Task.Status.valueOf(taskDTO.getStatus() != null ? taskDTO.getStatus() : "PENDING"));
+        task.setProject(project);
+        Task created = taskService.createTask(task);
+        return ResponseEntity.ok(EntityToDTOMapper.toTaskDTO(created));
     }
 }

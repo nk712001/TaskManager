@@ -28,6 +28,26 @@
 ## Step 9: Project Endpoints
 
 ### What was done
+
+---
+
+## Step 10: Task Endpoints
+
+### What was done
+- Added project-scoped task endpoints to `ProjectController.java`:
+  - `GET /api/v1/projects/{projectId}/tasks`: Returns all tasks for a given project (authenticated users).
+  - `POST /api/v1/projects/{projectId}/tasks`: Creates a new task for a project (ADMIN only).
+- Used DTOs for request/response and delegated persistence to `TaskService`.
+- Injected `TaskService` into `ProjectController` and fixed required imports.
+- All endpoints enforce proper access control and data mapping.
+
+### Notes for future developers
+- Use these endpoints to manage tasks within the context of a project.
+- The single-task endpoints (`/api/v1/tasks/...`) remain in `TaskController`.
+- Always use DTOs for API payloads.
+- Extend as needed for additional project-task operations.
+
+
 - Implemented all required endpoints in `ProjectController.java`:
   - `GET /api/v1/projects` returns all projects for authenticated users.
   - `GET /api/v1/projects/{projectId}` returns a single project by ID for authenticated users.
