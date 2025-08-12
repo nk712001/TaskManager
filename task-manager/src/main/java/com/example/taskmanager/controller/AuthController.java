@@ -7,10 +7,16 @@ import com.example.taskmanager.dto.EntityToDTOMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import com.example.taskmanager.security.JwtUtil;
+import com.example.taskmanager.security.CustomUserDetailsService;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AuthController.class);
     private final UserService userService;
 
     @Autowired
@@ -24,10 +30,27 @@ public class AuthController {
         return ResponseEntity.ok(EntityToDTOMapper.toUserDTO(created));
     }
 
-    // Placeholder for login endpoint (JWT logic to be added in security step)
+    @Autowired
+    private AuthenticationManager authenticationManager;
+    @Autowired
+    private JwtUtil jwtUtil;
+    @Autowired
+    private CustomUserDetailsService customUserDetailsService;
+
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody User user) {
-        // JWT authentication logic goes here
-        return ResponseEntity.ok("JWT token placeholder");
+        logger.info("DEBUG: LOGIN CONTROLLER REACHED for username: {}", user.getUsername());
+        logger.info("DEBUG: Attempting login for username: {}", user.getUsername());
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword())
+            );
+            org.springframework.security.core.userdetails.User principal = (org.springframework.security.core.userdetails.User) authentication.getPrincipal();
+            String jwt = jwtUtil.generateToken(principal.getUsername());
+            return ResponseEntity.ok(jwt);
+        } catch (Exception e) {
+            logger.error("DEBUG: Login failed for username: {} - {}", user.getUsername(), e.getMessage());
+            return ResponseEntity.status(401).body("Invalid username or password");
+        }
     }
 }

@@ -1,4 +1,4 @@
-version: '3.8'
+
 services:
   db:
     image: postgres:16-alpine
@@ -22,15 +22,9 @@ services:
       db:
         condition: service_healthy
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: task_manager_db
-      DB_USER: postgres
-      DB_PASSWORD: Ayphen@123
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/task_manager_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: Ayphen@123
-      # Add other environment variables as needed
+      SPRING_DATASOURCE_PASSWORD: your_password_here
     ports:
       - "8080:8080"
     restart: unless-stopped

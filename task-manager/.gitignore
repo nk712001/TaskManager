@@ -13,7 +13,7 @@
 *.iml
 *.ipr
 *.iws
-*.log
+#*.log
 *.tmp
 *.swp
 .DS_Store

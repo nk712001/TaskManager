@@ -1,18 +1,15 @@
-# Start from an OpenJDK 21 image
-FROM eclipse-temurin:21-jdk-alpine as builder
+# Start from an OpenJDK 21 image with Maven installed
+FROM maven:3.9.6-eclipse-temurin-21-alpine as builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml
-COPY mvnw* pom.xml
-COPY .mvn .mvn
-
-# Copy source code
-COPY src src
+# Copy pom.xml and source code
+COPY pom.xml .
+COPY src ./src
 
 # Package the application (skip tests for build speed)
-RUN ./mvnw clean package -DskipTests
+RUN mvn clean package -DskipTests -e -X
 
 # ---
 # Run stage

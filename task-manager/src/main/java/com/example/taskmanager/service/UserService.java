@@ -10,6 +10,10 @@ import java.util.Optional;
 @Service
 public class UserService {
     private final UserRepository userRepository;
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    @Autowired
+    private com.example.taskmanager.repository.RoleRepository roleRepository;
 
     @Autowired
     public UserService(UserRepository userRepository) {
@@ -29,6 +33,19 @@ public class UserService {
     }
 
     public User createUser(User user) {
+        // Assign default USER role if not set
+        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+            com.example.taskmanager.entities.Role userRole = roleRepository.findByName("USER")
+                .orElseGet(() -> {
+                    com.example.taskmanager.entities.Role newRole = new com.example.taskmanager.entities.Role();
+                    newRole.setName("USER");
+                    return roleRepository.save(newRole);
+                });
+            java.util.Set<com.example.taskmanager.entities.Role> roles = new java.util.HashSet<>();
+            roles.add(userRole);
+            user.setRoles(roles);
+        }
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 

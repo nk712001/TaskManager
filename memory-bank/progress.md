@@ -1,5 +1,161 @@
 # Progress Log
 
+## Step 7: Security Configuration (JWT-ready)
+
+### What was done
+- Created `SecurityConfig.java` in the root of the main Java package.
+- Configured Spring Security using the new `SecurityFilterChain` bean for compatibility with Spring Security 6.x.
+- Allowed unrestricted access to `/api/auth/**` endpoints (registration/login).
+- Required authentication for `/api/v1/projects` and `/api/v1/projects/**` endpoints.
+- Set up the app for stateless session management (JWT-ready).
+- Deprecated `antMatchers` replaced with `requestMatchers` for endpoint rules.
+- Removed legacy `AuthenticationManager` bean and unused imports for clarity.
+- Noted that POST/PUT/DELETE restrictions to ADMIN should be enforced at the controller method level with `@PreAuthorize` annotations.
+
+### Notes for future developers
+- For role-based restrictions (e.g., only ADMIN can POST/PUT/DELETE), use method-level security annotations in controller methods.
+- This config is ready for JWT integration (filter to be added in the next step).
+- See `SecurityConfig.java` for the latest security setup and update as Spring Security evolves.
+
+---
+
+## Step 7.2: JWT Authentication Filter & Security Context
+
+### What was done
+
+---
+
+## Step 8: Authentication Endpoints
+
+### Step 8.1: /api/auth/register
+- Implemented the `/api/auth/register` endpoint in `AuthController`.
+- Accepts a JSON body with `username` and `password` fields.
+- Delegates user creation to `UserService.createUser`, which persists the user in the database.
+- Returns a `UserDTO` containing the registered user's id, username, and roles (excluding the password).
+
+#### Test validation
+- Tested the endpoint using `curl` from the Docker host:
+  ```bash
+  curl.exe --% -X POST http://localhost:8080/api/auth/register -H "Content-Type: application/json" -d "{\"username\":\"testuser_docker5\",\"password\":\"testpass5\"}"
+  ```
+- Received a successful response:
+  ```json
+  {"id":1,"username":"testuser_docker5","roles":[]}
+  ```
+- Verified that the user is persisted in the database and the endpoint works as intended.
+
+#### Notes for future developers
+- Ensure that the request body is valid JSON with double quotes for both field names and values.
+- If you add required fields to the `User` entity, update the registration endpoint and documentation accordingly.
+- If you encounter JSON parse errors, use the `--%` operator in PowerShell to avoid quoting issues.
+
+---
+
+### What was done
+- Implemented `JwtAuthenticationFilter` in the `security` package, extending `OncePerRequestFilter`.
+- The filter extracts the JWT from the `Authorization` header, validates it using `JwtUtil`, and loads the user from the database.
+- On successful validation, the filter sets the authentication in the Spring Security context, enabling stateless JWT authentication for all protected endpoints.
+- Registered the filter in `SecurityConfig` to run before the `UsernamePasswordAuthenticationFilter`.
+- Confirmed that the filter is only triggered when a JWT is present and does not interfere with public endpoints.
+
+### Test validation
+- Ran the full test suite with `mvn test`.
+- All tests passed, confirming that:
+  - The JWT authentication filter is invoked for protected endpoints.
+  - The security context is correctly populated from a valid JWT.
+  - Access control is enforced as expected for both authenticated and unauthenticated requests.
+
+### Notes for future developers
+- The filter is ready for use with any JWT-compliant client. If you extend the user model or JWT claims, update `JwtUtil` and the filter accordingly.
+- For new endpoints, ensure the correct security annotations are applied in controllers as needed.
+- If you add custom claims or roles, update the authentication logic to include authorities in the security context.
+
+
+## Step 3: Repository Layer Implementation
+
+### What was done
+- Created a new `repository` folder under `src/main/java/com/example/taskmanager/`.
+- Implemented the following Spring Data JPA repository interfaces:
+  - **UserRepository**: Provides CRUD operations for User and includes a method to find a user by username.
+  - **RoleRepository**: Provides CRUD operations for Role.
+  - **ProjectRepository**: Provides CRUD operations for Project.
+  - **TaskRepository**: Provides CRUD operations for Task.
+- Each repository extends `JpaRepository` to leverage Spring Data features and reduce boilerplate.
+
+### Notes for future developers
+- All repositories are grouped in the `repository` folder for clarity and maintainability.
+- Use these repositories for all future database access in the service layer.
+- You can extend these interfaces with custom query methods as needed for new features.
+
+
+## Step 4: DTOs & Mapping
+
+### What was done
+- Created a new `dto` package under `src/main/java/com/example/taskmanager/`.
+- Implemented DTO classes: `UserDTO`, `ProjectDTO`, and `TaskDTO` to decouple API models from internal entity structure.
+- Added `EntityToDTOMapper` utility for converting entities to DTOs, handling nested and collection mappings.
+- Wrote unit tests in `EntityToDTOMapperTest` to verify correct mapping from entity to DTO for all supported types.
+
+### Notes for future developers
+- Always use DTOs for API request/response payloads to avoid leaking sensitive or internal fields.
+- Extend DTOs and mapping logic as needed for new API requirements.
+- Mapper can be refactored to use a mapping library (e.g., MapStruct) if mapping logic becomes complex.
+
+
+## Step 5: Service Layer Implementation
+
+### What was done
+- Created a `service` package under `src/main/java/com/example/taskmanager/`.
+- Implemented `UserService`, `ProjectService`, and `TaskService` classes, each encapsulating business logic and providing CRUD operations for their respective entities.
+- Each service uses the corresponding repository to perform persistence operations and applies business rules as needed.
+- Ensured that all business logic is centralized in the service layer, keeping controllers thin and maintainable.
+- Wrote unit tests for each service class (`UserServiceTest`, `ProjectServiceTest`, `TaskServiceTest`) using Mockito to mock repositories and verify all CRUD operations.
+
+### Notes for future developers
+- All business rules and transactional logic should reside in the service layer.
+- Service classes should be tested in isolation using mocks for repository dependencies.
+- Extend service classes as new business requirements emerge, and keep controllers focused on HTTP request/response handling.
+
+
+## Step 6: Controller Layer Implementation
+
+### What was done
+- Created a `controller` package under `src/main/java/com/example/taskmanager/`.
+- Implemented REST controllers for core resources:
+  - `UserController` for `/api/v1/users` endpoints (CRUD for users)
+  - `ProjectController` for `/api/v1/projects` endpoints (CRUD for projects)
+  - `TaskController` for `/api/v1/tasks` endpoints (CRUD for tasks)
+  - `AuthController` for `/api/auth/register` and `/api/auth/login` endpoints (user registration and login placeholder)
+- Controllers use the corresponding service and DTO mapper to handle requests and responses, ensuring entities are never exposed directly.
+- Each controller follows RESTful conventions and returns appropriate HTTP status codes.
+
+### Notes for future developers
+- Keep controllers thin; delegate all business logic to service classes.
+- Only expose DTOs in API responses, not entities.
+- Extend controllers as new endpoints or resources are required.
+- Add request validation and exception handling as needed for robust APIs.
+
+
+## Step 2: JPA Entity Implementation
+
+### What was done
+- Created a new `entities` folder under `src/main/java/com/example/taskmanager/` for better code organization and readability.
+- Implemented the following JPA entity classes:
+  - **User**: Represents application users. Fields: id, username, password. Relationships: many-to-many with Role, one-to-many with Project.
+  - **Role**: Represents user roles. Fields: id, name. Relationships: many-to-many with User.
+  - **Project**: Represents projects. Fields: id, name, description. Relationships: many-to-one with User (owner), one-to-many with Task.
+  - **Task**: Represents tasks. Fields: id, title, description, status (enum: PENDING, IN_PROGRESS, COMPLETED, CANCELLED). Relationships: many-to-one with Project.
+- Used Lombok annotations to reduce boilerplate (`@Data`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@Builder`).
+- Used JPA annotations to define table structure and relationships.
+- Committed and pushed these changes to the git repository for version control.
+
+### Notes for future developers
+- All core business entities are now grouped in the `entities` folder for clarity.
+- Relationships are mapped using JPA best practices, supporting future repository and service layer development.
+- Modify or extend these entities as needed for new features or requirements.
+
+
+
 ## Step 1: Project Initialization
 
 ### What was done
