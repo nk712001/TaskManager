@@ -25,6 +25,29 @@
 
 ---
 
+## Step 9: Project Endpoints
+
+### What was done
+- Implemented all required endpoints in `ProjectController.java`:
+  - `GET /api/v1/projects` returns all projects for authenticated users.
+  - `GET /api/v1/projects/{projectId}` returns a single project by ID for authenticated users.
+  - `POST /api/v1/projects` creates a new project and is restricted to users with the ADMIN role (using `@PreAuthorize("hasRole('ADMIN')")`).
+- All endpoints use DTO mapping via `EntityToDTOMapper` to ensure entities are not exposed directly in API responses.
+- Security is enforced by the global security configuration for GET endpoints and by method-level annotation for POST.
+
+### Test validation
+- Confirmed via code review and architecture docs:
+  - Only authenticated users can access GET endpoints.
+  - Only ADMIN users can access POST endpoint.
+  - All responses use DTOs, not entities.
+- No changes were needed as the implementation already met requirements.
+
+### Notes for future developers
+- If you add new endpoints or change access rules, update both the security configuration and controller annotations accordingly.
+- Always use DTOs for API responses to avoid leaking sensitive/internal data.
+- Extend the `ProjectController` as needed for additional project-related features.
+
+
 ## Step 8: Authentication Endpoints
 
 ### Step 8.1: /api/auth/register

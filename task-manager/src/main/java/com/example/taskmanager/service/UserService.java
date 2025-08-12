@@ -10,14 +10,16 @@ import java.util.Optional;
 @Service
 public class UserService {
     private final UserRepository userRepository;
-    @Autowired
-    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
-    @Autowired
-    private com.example.taskmanager.repository.RoleRepository roleRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final com.example.taskmanager.repository.RoleRepository roleRepository;
 
     @Autowired
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository,
+                       org.springframework.security.crypto.password.PasswordEncoder passwordEncoder,
+                       com.example.taskmanager.repository.RoleRepository roleRepository) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.roleRepository = roleRepository;
     }
 
     public List<User> getAllUsers() {

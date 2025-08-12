@@ -92,7 +92,12 @@ Each repository extends `JpaRepository`, leveraging Spring Data features for con
 ### Controller Layer
 - **controller/**: Contains REST controller classes that expose the application's API endpoints, handling HTTP requests and responses. Controllers delegate all business logic to the service layer and use DTOs for API payloads to ensure entities are never exposed directly.
   - **UserController.java**: Handles `/api/v1/users` endpoints for user CRUD operations. Delegates business logic to `UserService` and uses `EntityToDTOMapper` for response mapping.
-  - **ProjectController.java**: Manages `/api/v1/projects` endpoints for project CRUD operations. Uses `ProjectService` for business logic and maps entities to DTOs for API responses.
+  - **ProjectController.java**: Manages `/api/v1/projects` endpoints for project CRUD operations.
+    - `GET /api/v1/projects`: Returns all projects for authenticated users. Access is controlled by security configuration.
+    - `GET /api/v1/projects/{projectId}`: Returns a single project by ID for authenticated users. Access is controlled by security configuration.
+    - `POST /api/v1/projects`: Creates a new project. Access is restricted to users with the ADMIN role via `@PreAuthorize("hasRole('ADMIN')")`.
+    - All endpoints use DTO mapping via `EntityToDTOMapper` to ensure entities are not exposed directly in API responses.
+    - Rationale: Endpoint design enforces least privilege (only admins can create), and DTOs prevent leaking sensitive/internal fields. Security is enforced both globally (for GET) and at the method level (for POST).
   - **TaskController.java**: Provides `/api/v1/tasks` endpoints for task CRUD operations. Relies on `TaskService` and DTO mapping for clean API boundaries.
   - **AuthController.java**: Exposes `/api/auth/register` and `/api/auth/login` endpoints for user registration and authentication.
     - `/api/auth/register`: Accepts a JSON body with `username` and `password`, creates a new user via `UserService`, and returns a DTO without the password.
