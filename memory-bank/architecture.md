@@ -94,10 +94,16 @@ Each repository extends `JpaRepository`, leveraging Spring Data features for con
   - **UserController.java**: Handles `/api/v1/users` endpoints for user CRUD operations. Delegates business logic to `UserService` and uses `EntityToDTOMapper` for response mapping.
   - **ProjectController.java**: Manages `/api/v1/projects` endpoints for project CRUD operations. Uses `ProjectService` for business logic and maps entities to DTOs for API responses.
   - **TaskController.java**: Provides `/api/v1/tasks` endpoints for task CRUD operations. Relies on `TaskService` and DTO mapping for clean API boundaries.
-  - **AuthController.java**: Exposes `/api/auth/register` and `/api/auth/login` endpoints for user registration and authentication. `/api/auth/register` accepts a JSON body with `username` and `password`, creates a new user via `UserService`, and returns a DTO without the password. `/api/auth/login` authenticates credentials, generates a JWT on success, and returns it to the client for use in subsequent requests.
+  - **AuthController.java**: Exposes `/api/auth/register` and `/api/auth/login` endpoints for user registration and authentication.
+    - `/api/auth/register`: Accepts a JSON body with `username` and `password`, creates a new user via `UserService`, and returns a DTO without the password.
+    - `/api/auth/login`: Accepts a JSON body with `username` and `password`, authenticates credentials using `AuthenticationManager`, and returns a JWT on success (generated via `JwtUtil`). The JWT is used for subsequent requests to protected endpoints.
 
 **How AuthController interacts with other layers:**
 - Delegates user creation and retrieval to `UserService`.
+- Delegates authentication logic to `AuthenticationManager` and token generation to `JwtUtil`.
+
+  - **JwtUtil.java**: Utility for generating, parsing, and validating JWTs. Handles secret key management and token expiration logic. Used by both the authentication endpoints and the filter. Generates tokens in `/api/auth/login` and validates tokens in security filters.
+
 - Uses `JwtUtil` to generate and validate JWTs for authentication.
 - Leverages Spring Security's `AuthenticationManager` to authenticate login requests.
 - Ensures that sensitive fields (like passwords) are never exposed in API responses by using DTOs and mapping utilities.

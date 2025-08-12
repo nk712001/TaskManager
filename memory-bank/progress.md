@@ -51,6 +51,29 @@
 
 ---
 
+### Step 8.2: /api/auth/login
+- Implemented the `/api/auth/login` endpoint in `AuthController`.
+- Accepts a JSON body with `username` and `password` fields.
+- Uses `AuthenticationManager` to authenticate credentials.
+- On success, generates a JWT using `JwtUtil` and returns it in the response body.
+- On failure, returns HTTP 401 with an error message.
+
+#### Test validation
+- Tested the endpoint using `curl` from the Docker host:
+  ```bash
+  curl.exe --% -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d "{\"username\":\"testuser_docker5\",\"password\":\"testpass5\"}"
+  ```
+- Received a JWT string as the response body for valid credentials.
+- Attempted login with invalid credentials and received a 401 Unauthorized response.
+- Used the JWT to access a protected endpoint (e.g., `/api/v1/projects`) and confirmed access was granted only with a valid token.
+
+#### Notes for future developers
+- The login endpoint is stateless and returns a JWT for use in the `Authorization: Bearer <token>` header for protected endpoints.
+- If you change the JWT structure or claims, update `JwtUtil` and document the changes here.
+- Ensure error handling and logging remain clear for authentication failures.
+
+---
+
 ### What was done
 - Implemented `JwtAuthenticationFilter` in the `security` package, extending `OncePerRequestFilter`.
 - The filter extracts the JWT from the `Authorization` header, validates it using `JwtUtil`, and loads the user from the database.
