@@ -12,6 +12,7 @@ These files enable local development parity with production, support hot reloadi
 
 #### Authentication Context
 - **src/contexts/AuthContext.tsx**: Provides authentication state and actions (login/logout, token management, session timeout) via React Context. Exposes a `useAuth` hook for accessing auth state and actions in components. Centralizes authentication logic and ensures consistent access to user/session info across the app.
+- **src/pages/auth/Register.tsx**: Implements the registration form using React Hook Form, Zod schema validation, and Ant Design components. Handles user registration by calling `/api/auth/register`, displays validation and server errors, and ensures a consistent UI/UX with the login page.
 
 #### Core Dependencies
 - **react-router-dom**: Client-side routing.
@@ -32,6 +33,7 @@ These files enable local development parity with production, support hot reloadi
 #### Absolute Imports
 - **tsconfig.app.json**: The `baseUrl` and `paths` options allow you to use absolute imports like `@components/Button` or `@utils/helpers` from anywhere in the `src/` tree, improving code readability and maintainability.
 - **vite.config.ts**: The `resolve.alias` section mirrors these paths for Vite's module resolver, ensuring absolute imports work in both development and production builds.
+- **vite.config.ts**: Also configures the Vite dev server to proxy all `/api` requests to the backend (e.g., `http://localhost:8080`). This allows frontend code to use relative API paths in development, avoiding CORS issues and 404s from the Vite server.
 
 
 - **.eslintrc.cjs**: ESLint configuration file. Defines linting rules for JavaScript/TypeScript, React, and Prettier integration. Ensures code style and best practices are enforced across the codebase.

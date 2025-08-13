@@ -27,8 +27,18 @@
 - [x] Set up Auth Context
   - Implemented `AuthContext` and `AuthProvider` in `src/contexts/AuthContext.tsx`.
   - Added types for user and tokens, login/logout with 'Remember Me', JWT/refresh token management (mocked), session timeout, and `useAuth` hook for access in components.
-- [ ] Implement login page
-- [ ] Implement registration page
+- [x] Implement login page
+  - Created `Login.tsx` in `src/pages/auth` with Ant Design UI, Zod validation, and React Hook Form integration.
+  - Used `Controller` for all fields to guarantee type safety and avoid undefined errors with Zod.
+  - Polished UI: centered card, gradient background, logo, and error handling.
+  - Fixed all "expected string, received undefined" issues with controlled fields.
+  - Downgraded React to 18.x for Ant Design v5 compatibility.
+- [x] Implement registration page
+  - Created `Register.tsx` in `src/pages/auth` with Ant Design UI, Zod validation, React Hook Form integration, and API call to `/api/auth/register`.
+  - Used `Controller` for all fields to guarantee type safety and avoid undefined errors with Zod.
+  - UI and validation match login page style, with error handling and loading states.
+  - Added `/register` route to router and ensured correct navigation.
+  - Configured Vite proxy to forward `/api` requests to backend for local development.
 - [ ] Set up protected routes
 
 ## Phase 3: Core Layout

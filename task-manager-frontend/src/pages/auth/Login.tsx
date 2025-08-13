@@ -17,7 +17,7 @@ export default function Login() {
   const { login, isLoading, error } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
   const {
-    register,
+
     handleSubmit,
     formState: { errors },
     control,
@@ -29,15 +29,17 @@ export default function Login() {
   const onSubmit = async (data: LoginFormInputs) => {
     setFormError(null);
     try {
-      // Defensive: fallback to empty string if undefined (should not happen)
-      const email = typeof data.email === 'string' ? data.email : '';
+      // Accept username or email in the same field, always send as 'username' to backend
+      const identifier = typeof data.email === 'string' ? data.email : '';
       const password = typeof data.password === 'string' ? data.password : '';
-      await login(email, password, !!data.remember);
+      // Optionally: add email regex check here if you want to treat differently
+      await login(identifier, password, !!data.remember);
       // Redirect logic handled by parent router
     } catch (err: any) {
       setFormError(err.message || 'Login failed');
     }
   };
+
 
   return (
     <div style={{

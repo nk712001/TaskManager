@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
+import axios from 'axios';
 
 // Types for Auth State and Context
 export interface AuthUser {
@@ -16,7 +17,7 @@ interface AuthTokens {
 interface AuthContextType {
   user: AuthUser | null;
   tokens: AuthTokens | null;
-  login: (email: string, password: string, remember: boolean) => Promise<void>;
+  login: (email: string, _password: string, remember: boolean) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
   error: string | null;
@@ -72,26 +73,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [tokens]);
 
-  // Mock API login (Replace with real API call)
-  const login = useCallback(async (email: string, password: string, remember: boolean) => {
+  // Real API login
+  const login = useCallback(async (username: string, password: string, remember: boolean) => {
     setIsLoading(true);
     setError(null);
     try {
-      // TODO: Replace with real API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      // Example user and tokens
-      const mockUser: AuthUser = { id: '1', email, role: 'user' };
-      const mockTokens: AuthTokens = {
-        accessToken: 'mock-access-token',
-        refreshToken: 'mock-refresh-token',
-      };
-      setUser(mockUser);
-      setTokens(mockTokens);
+      console.log('Attempting login', { username, password });
+      const response = await axios.post('/api/auth/login', {
+        username,
+        password,
+      });
+      console.log('Login response', response);
+      // Adjust below based on your backend's actual response structure
+      const { user, accessToken, refreshToken } = response.data;
+      const userObj: AuthUser = user;
+      const tokensObj: AuthTokens = { accessToken, refreshToken };
+      setUser(userObj);
+      setTokens(tokensObj);
       if (remember) {
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: mockUser, tokens: mockTokens }));
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: userObj, tokens: tokensObj }));
       }
-    } catch (err) {
-      setError('Invalid credentials');
+    } catch (err: any) {
+      console.error('Login error', err);
+      setError(err.response?.data?.message || 'Invalid credentials');
     } finally {
       setIsLoading(false);
     }
