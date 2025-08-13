@@ -1,0 +1,15 @@
+node_modules
+dist
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+*.log
+*.env
+.vscode
+.idea
+npm-debug.log
+coverage
+storybook-static
+cypress/videos
+cypress/screenshots
