@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import PrivateRoute from './components/common/PrivateRoute';
 import type { ReactNode } from 'react';
 
 // Placeholder for main app/dashboard
@@ -14,7 +15,12 @@ export default function AppRouter(): ReactNode {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/" element={<Dashboard />} />
+        {/* Protected route: only accessible if authenticated */}
+        <Route path="/" element={
+          <PrivateRoute>
+            <Dashboard />
+          </PrivateRoute>
+        } />
         {/* Add more routes here */}
         {/* Only redirect unknown routes, not /register or /login */}
         <Route path="*" element={<Navigate to="/login" replace />} />

@@ -11,9 +11,12 @@ These files enable local development parity with production, support hot reloadi
 ### Configuration and Quality Tools
 
 #### Authentication Context
-- **src/contexts/AuthContext.tsx**: Provides authentication state and actions (login/logout, token management, session timeout) via React Context. Exposes a `useAuth` hook for accessing auth state and actions in components. Centralizes authentication logic and ensures consistent access to user/session info across the app.
+- **src/contexts/AuthContext.tsx**: Implements the authentication provider for the entire app. Handles login/logout, JWT and refresh token storage, 'Remember Me' functionality (persists credentials in localStorage), session timeout (auto-logout after 30 minutes), and exposes error/loading states. State is restored from localStorage on mount. The `useAuth` hook allows any component to access auth state and actions, ensuring a consistent authentication flow and centralized logic.
+- **src/pages/auth/Login.tsx**: Implements the login form using React Hook Form, Zod validation, and Ant Design UI components. Integrates with AuthContext for login and error handling. Supports 'Remember Me' and displays error/loading states.
 - **src/pages/auth/Register.tsx**: Implements the registration form using React Hook Form, Zod schema validation, and Ant Design components. Handles user registration by calling `/api/auth/register`, displays validation and server errors, and ensures a consistent UI/UX with the login page.
-
+- **src/components/common/PrivateRoute.tsx**: A wrapper component for route protection. It uses `useAuth` to check if a user is authenticated. If not, it redirects to `/login` and preserves the intended destination. While authentication state is loading, it displays a loading indicator. Used in `router.tsx` to protect routes like the Dashboard.
+- **Protected Route Mechanism**: Routes that require authentication are wrapped in `PrivateRoute`. This ensures only authenticated users can access them, and handles redirecting unauthenticated users to login, with their original destination saved for post-login navigation.
+- **Authentication Flow**: On login, credentials are validated client-side, then sent to `/api/auth/login`. On success, JWT tokens and user info are stored in localStorage (if 'Remember Me' is checked) and in React state. The session auto-expires after 30 minutes of inactivity. All protected routes will check for valid authentication using the context.
 #### Core Dependencies
 - **react-router-dom**: Client-side routing.
 - **axios**: HTTP client for API requests.

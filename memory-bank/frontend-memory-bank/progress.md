@@ -26,7 +26,13 @@
 ## Phase 2: Authentication
 - [x] Set up Auth Context
   - Implemented `AuthContext` and `AuthProvider` in `src/contexts/AuthContext.tsx`.
-  - Added types for user and tokens, login/logout with 'Remember Me', JWT/refresh token management (mocked), session timeout, and `useAuth` hook for access in components.
+  - Added TypeScript types for user and tokens.
+  - Implemented login/logout with 'Remember Me' (stores credentials in localStorage if checked).
+  - Handles JWT access/refresh tokens and session timeout (auto-logout after 30 minutes).
+  - Provided a `useAuth` hook for consuming authentication state and actions in any component.
+  - Auth state is persisted and restored from localStorage on mount.
+  - Error and loading states are managed in context for UI feedback.
+  - All logic follows the implementation plan and is ready for protected route integration.
 - [x] Implement login page
   - Created `Login.tsx` in `src/pages/auth` with Ant Design UI, Zod validation, and React Hook Form integration.
   - Used `Controller` for all fields to guarantee type safety and avoid undefined errors with Zod.
@@ -39,8 +45,11 @@
   - UI and validation match login page style, with error handling and loading states.
   - Added `/register` route to router and ensured correct navigation.
   - Configured Vite proxy to forward `/api` requests to backend for local development.
-- [ ] Set up protected routes
-
+- [x] Set up protected routes
+  - Created `PrivateRoute` component in `src/components/common/PrivateRoute.tsx` to guard routes that require authentication.
+  - Used the `useAuth` hook to check authentication state and redirect unauthenticated users to `/login`, preserving the intended destination.
+  - Wrapped the Dashboard route in `router.tsx` with `PrivateRoute` to ensure only authenticated users can access the main app.
+  - Added a loading state for protected routes while auth state is being determined.
 ## Phase 3: Core Layout
 - [ ] Create main layout components
 - [ ] Implement responsive navigation
