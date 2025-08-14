@@ -38,7 +38,17 @@ const LogoContainer = styled.div`
   font-weight: bold;
 `;
 
-const Sidebar = () => {
+import { Drawer } from 'antd';
+import type { FC } from 'react';
+
+interface SidebarProps {
+  isMobile: boolean;
+  open: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+}
+
+const Sidebar: FC<SidebarProps> = ({ isMobile, open, onOpen, onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -70,6 +80,31 @@ const Sidebar = () => {
     },
   ];
 
+  if (isMobile) {
+    return (
+      <Drawer
+        title={<LogoContainer>TM</LogoContainer>}
+        placement="left"
+        closable
+        onClose={onClose}
+        open={open}
+        bodyStyle={{ padding: 0 }}
+        width={200}
+      >
+        <Menu
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          style={{ height: '100%', borderRight: 0 }}
+          items={menuItems}
+          onClick={(item) => {
+            navigate(item.key);
+            onClose();
+          }}
+        />
+      </Drawer>
+    );
+  }
+
   return (
     <StyledSider width={200} theme="light">
       <LogoContainer>TM</LogoContainer>
@@ -78,7 +113,7 @@ const Sidebar = () => {
         selectedKeys={[location.pathname]}
         style={{ height: '100%', borderRight: 0 }}
         items={menuItems}
-        onClick={({ key }) => navigate(key)}
+        onClick={(item) => navigate(item.key)}
       />
     </StyledSider>
   );

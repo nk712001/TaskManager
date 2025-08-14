@@ -1,12 +1,14 @@
-import { Layout } from 'antd';
+import { Layout, Grid } from 'antd';
 import { Outlet } from 'react-router-dom';
 import Header from './Header.tsx';
 import Sidebar from './Sidebar.tsx';
 import Footer from './Footer.tsx';
 import styled from 'styled-components';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 
 const { Content } = Layout;
+const { useBreakpoint } = Grid;
 
 const StyledLayout = styled(Layout)`
   min-height: 100vh;
@@ -18,15 +20,19 @@ const ContentWrapper = styled(Content)`
   min-height: calc(100vh - 64px - 69px); /* Subtract header and footer height */
 `;
 
-const StyledContent = styled.div`
+interface StyledContentProps {
+  isMobile: boolean;
+}
+
+const StyledContent = styled.div<StyledContentProps>`
   padding: 24px;
   background: #fff;
-  min-height: calc(100vh - 64px); /* Full height minus header */
-  margin-left: 200px; /* Match sidebar width */
-  margin-top: 64px; /* Match header height */
-  width: calc(100% - 200px); /* Full width minus sidebar */
+  min-height: calc(100vh - 64px);
+  margin-left: ${({ isMobile }) => (isMobile ? 0 : '200px')};
+  margin-top: 64px;
+  width: ${({ isMobile }) => (isMobile ? '100%' : 'calc(100% - 200px)')};
   position: fixed;
-  overflow-y: auto; /* Enable scrolling for content */
+  overflow-y: auto;
   right: 0;
   top: 0;
 `;
@@ -39,26 +45,42 @@ const StyledSidebar = styled.div`
   z-index: 2;
 `;
 
-const MainContent = styled.div`
-  margin-left: 200px; /* Match sidebar width */
+interface MainContentProps {
+  isMobile: boolean;
+}
+
+const MainContent = styled.div<MainContentProps>`
+  margin-left: ${({ isMobile }) => (isMobile ? 0 : '200px')};
   transition: margin 0.2s;
   min-height: 100vh;
 `;
 
 interface AppLayoutProps {
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 const AppLayout = ({ children }: AppLayoutProps) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const screens = useBreakpoint();
+  const isMobile = !screens.md; // md and up is desktop
+
+  const handleSidebarOpen = () => setSidebarOpen(true);
+  const handleSidebarClose = () => setSidebarOpen(false);
+
   return (
     <StyledLayout>
       <StyledSidebar>
-        <Sidebar />
+        <Sidebar
+          isMobile={isMobile}
+          open={sidebarOpen}
+          onOpen={handleSidebarOpen}
+          onClose={handleSidebarClose}
+        />
       </StyledSidebar>
-      <MainContent>
-        <Header />
+      <MainContent isMobile={isMobile}>
+        <Header isMobile={isMobile} onMenuClick={handleSidebarOpen} />
         <ContentWrapper>
-          <StyledContent>
+          <StyledContent isMobile={isMobile}>
             {children || <Outlet />}
           </StyledContent>
         </ContentWrapper>

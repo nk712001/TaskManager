@@ -20,7 +20,15 @@ const StyledHeader = styled(AntHeader)`
   line-height: 64px;
 `;
 
-const Header = () => {
+import { MenuUnfoldOutlined } from '@ant-design/icons';
+import type { FC } from 'react';
+
+interface HeaderProps {
+  isMobile: boolean;
+  onMenuClick: () => void;
+}
+
+const Header: FC<HeaderProps> = ({ isMobile, onMenuClick }) => {
   const { logout, user } = useAuth();
 
   const menu = (
@@ -39,9 +47,18 @@ const Header = () => {
   );
 
   return (
-    <StyledHeader>
-      <div className="logo" style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>
-        Task Manager
+    <StyledHeader style={{ width: isMobile ? '100%' : 'calc(100% - 200px)' }}>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        {isMobile && (
+          <MenuUnfoldOutlined
+            style={{ fontSize: 22, marginRight: 16, cursor: 'pointer' }}
+            onClick={onMenuClick}
+            aria-label="Open navigation menu"
+          />
+        )}
+        <div className="logo" style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>
+          Task Manager
+        </div>
       </div>
       <div className="user-actions">
         <Dropdown overlay={menu} trigger={['click']}>

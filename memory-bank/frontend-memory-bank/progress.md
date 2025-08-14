@@ -51,8 +51,16 @@
   - Wrapped the Dashboard route in `router.tsx` with `PrivateRoute` to ensure only authenticated users can access the main app.
   - Added a loading state for protected routes while auth state is being determined.
 ## Phase 3: Core Layout
-- [ ] Create main layout components
-- [ ] Implement responsive navigation
+- [x] Create main layout components
+  - Created `AppLayout` component with responsive design
+  - Implemented `Header` with user menu and navigation
+  - Added `Sidebar` with navigation links
+  - Created `Footer` with copyright information
+- [x] Implement responsive navigation
+  - Sidebar now renders as a Drawer on mobile and as a fixed Sider on desktop.
+  - Header displays a hamburger menu button on mobile to open the sidebar Drawer.
+  - Layout and content margins adapt for mobile/desktop using Ant Design's useBreakpoint.
+  - Fixed mobile layout to eliminate left margin gap; content now uses full width on small screens.
 - [ ] Set up theme provider
 
 ## Phase 4: Dashboard

@@ -18,19 +18,78 @@ These files enable local development parity with production, support hot reloadi
 - **Protected Route Mechanism**: Routes that require authentication are wrapped in `PrivateRoute`. This ensures only authenticated users can access them, and handles redirecting unauthenticated users to login, with their original destination saved for post-login navigation.
 - **Authentication Flow**: On login, credentials are validated client-side, then sent to `/api/auth/login`. On success, JWT tokens and user info are stored in localStorage (if 'Remember Me' is checked) and in React state. The session auto-expires after 30 minutes of inactivity. All protected routes will check for valid authentication using the context.
 #### Core Dependencies
-- **react-router-dom**: Client-side routing.
-- **axios**: HTTP client for API requests.
-- **@tanstack/react-query**: Server state management and data fetching.
-- **zod**: Runtime type validation.
-- **react-hook-form**: Form state management.
+- **react-router-dom**: Client-side routing with nested routes and navigation.
+- **axios**: HTTP client for API requests with interceptors for auth tokens.
+- **@tanstack/react-query**: Server state management and data fetching with caching.
+- **zod**: Runtime type validation for forms and API responses.
+- **react-hook-form**: Form state management with validation integration.
 - **@hookform/resolvers**: Integrates Zod with React Hook Form.
-- **antd**: Ant Design UI component library.
-- **@ant-design/icons**: Icon set for Ant Design.
-- **styled-components**: CSS-in-JS styling solution.
+- **antd**: Ant Design UI component library for consistent design system.
+- **@ant-design/icons**: Comprehensive icon set for the application.
+- **styled-components**: CSS-in-JS styling solution for component-level styles.
 - **@storybook/react**: UI component development and documentation.
 - **cypress**: End-to-end testing framework.
-- **@types/styled-components, @types/react-router-dom, @types/jest**: TypeScript typings for smoother development.
+- **@types/***: TypeScript type definitions for all dependencies.
 - **react-error-boundary**: Error boundary component for React.
+
+### Layout Components
+
+#### AppLayout
+- **Location**: `src/components/layout/AppLayout.tsx`
+- **Purpose**: Main layout wrapper that structures the application with header, sidebar, and content areas.
+- **Features**:
+  - Responsive layout using Ant Design's Layout component
+  - Consistent structure across all authenticated routes
+  - Handles loading states and error boundaries
+  - **Responsive Navigation:**
+    - Uses Ant Design's `useBreakpoint` to detect mobile/desktop.
+    - Controls sidebar Drawer state and passes `isMobile`/handlers to Sidebar and Header.
+    - Adjusts content margin and width based on screen size, so content uses full width on mobile.
+
+#### Header
+- **Location**: `src/components/layout/Header.tsx`
+- **Purpose**: Top navigation bar with user menu and app title.
+- **Features**:
+  - Displays current user information
+  - Dropdown menu for user actions (profile, settings, logout)
+  - Responsive design that works on all screen sizes
+  - **Mobile:** Shows a hamburger menu button to open the sidebar Drawer.
+
+#### Sidebar
+- **Location**: `src/components/layout/Sidebar.tsx`
+- **Purpose**: Main navigation menu for the application.
+- **Features**:
+  - Collapsible menu items
+  - Icons for better visual hierarchy
+  - Active route highlighting
+  - Responsive behavior
+  - **Mobile:** Renders inside an Ant Design Drawer, toggled by Header menu button. Closes on menu selection or overlay click.
+  - **Desktop:** Renders as a fixed Sider with 200px width.
+
+#### Header
+- **Location**: `src/components/layout/Header.tsx`
+- **Purpose**: Top navigation bar with user menu and app title.
+- **Features**:
+  - Displays current user information
+  - Dropdown menu for user actions (profile, settings, logout)
+  - Responsive design that works on all screen sizes
+
+#### Sidebar
+- **Location**: `src/components/layout/Sidebar.tsx`
+- **Purpose**: Main navigation menu for the application.
+- **Features**:
+  - Collapsible menu items
+  - Icons for better visual hierarchy
+  - Active route highlighting
+  - Responsive behavior
+
+#### Footer
+- **Location**: `src/components/layout/Footer.tsx`
+- **Purpose**: Application footer with copyright information.
+- **Features**:
+  - Simple, clean design
+  - Copyright notice with dynamic year
+  - Can be extended with additional links or information
 
 
 #### Absolute Imports
