@@ -32,6 +32,42 @@ export const fetchRecentActivities = async () => {
   // const { data } = await api.get('/v1/activity/recent');
   // return data;
 
-  // Option 2: Otherwise, mock or return empty for now
-  return [];
+  // Option 2: Mock data for development/demo
+  return [
+    {
+      id: '1',
+      user: 'Alice',
+      action: 'created task',
+      target: 'Design landing page',
+      time: '2 minutes ago',
+    },
+    {
+      id: '2',
+      user: 'Bob',
+      action: 'completed task',
+      target: 'API integration',
+      time: '10 minutes ago',
+    },
+    {
+      id: '3',
+      user: 'Carol',
+      action: 'updated project',
+      target: 'Website Redesign',
+      time: '30 minutes ago',
+    },
+    {
+      id: '4',
+      user: 'Dave',
+      action: 'commented on',
+      target: 'Fix login bug',
+      time: '1 hour ago',
+    },
+    {
+      id: '5',
+      user: 'Eve',
+      action: 'assigned task',
+      target: 'Write documentation',
+      time: '2 hours ago',
+    },
+  ];
 };
