@@ -31,10 +31,11 @@ const StyledContent = styled.div<StyledContentProps>`
   margin-left: ${({ isMobile }) => (isMobile ? 0 : '200px')};
   margin-top: 64px;
   width: ${({ isMobile }) => (isMobile ? '100%' : 'calc(100% - 200px)')};
-  position: fixed;
-  overflow-y: auto;
+  position: ${({ isMobile }) => (isMobile ? 'relative' : 'fixed')};
+  overflow-y: ${({ isMobile }) => (isMobile ? 'visible' : 'auto')};
   right: 0;
   top: 0;
+  height: ${({ isMobile }) => (isMobile ? 'auto' : 'calc(100vh - 64px)')};
 `;
 
 const StyledSidebar = styled.div`
