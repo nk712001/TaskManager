@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 
 // Types for Auth State and Context
 export interface AuthUser {
   id: string;
   email: string;
+  name: string;
   role: 'admin' | 'user';
 }
 
@@ -17,6 +18,8 @@ interface AuthTokens {
 interface AuthContextType {
   user: AuthUser | null;
   tokens: AuthTokens | null;
+  setUser: (user: AuthUser | null) => void;
+  setTokens: (tokens: AuthTokens | null) => void;
   login: (email: string, _password: string, remember: boolean) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
@@ -40,16 +43,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Load from storage on mount
   useEffect(() => {
-    const saved = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setUser(parsed.user);
-        setTokens(parsed.tokens);
-      } catch {
-        // ignore
+    const loadAuthState = () => {
+      // First try localStorage (remember me)
+      let saved = localStorage.getItem(AUTH_STORAGE_KEY);
+      
+      // If not found in localStorage, try sessionStorage
+      if (!saved) {
+        saved = sessionStorage.getItem(AUTH_STORAGE_KEY);
       }
-    }
+      
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          console.log('Loaded auth state from storage:', { user: parsed.user });
+          setUser(parsed.user);
+          setTokens(parsed.tokens);
+        } catch (error) {
+          console.error('Failed to parse auth state:', error);
+          // Clear invalid storage
+          localStorage.removeItem(AUTH_STORAGE_KEY);
+          sessionStorage.removeItem(AUTH_STORAGE_KEY);
+        }
+      }
+    };
+    
+    loadAuthState();
   }, []);
 
   // Save to storage when user/tokens change
@@ -78,21 +96,55 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setIsLoading(true);
     setError(null);
     try {
-      console.log('Attempting login', { username, password });
-      const response = await axios.post('/api/auth/login', {
+      console.log('Attempting login', { username });
+      const response = await api.post('/auth/login', {
         username,
         password,
       });
-      console.log('Login response', response);
-      // Adjust below based on your backend's actual response structure
-      const { user, accessToken, refreshToken } = response.data;
-      const userObj: AuthUser = user;
-      const tokensObj: AuthTokens = { accessToken, refreshToken };
+      
+      console.log('Login response:', response.data);
+      
+      // The token is the direct response
+      const token = response.data;
+      
+      if (!token) {
+        throw new Error('No token received from server');
+      }
+      
+      // Create a minimal user object
+      const userObj: AuthUser = {
+        id: 'temp-id',  // You might want to decode the token to get user info
+        email: username,
+        name: username.split('@')[0],
+        role: 'user'  // Default role
+      };
+      
+      const tokensObj: AuthTokens = { 
+        accessToken: token,
+        refreshToken: ''  // If refresh token is not provided
+      };
+      
+      // Prepare auth data for storage
+      const authData = { 
+        user: userObj, 
+        tokens: tokensObj 
+      };
+      
+      // Update state first
       setUser(userObj);
       setTokens(tokensObj);
-      if (remember) {
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: userObj, tokens: tokensObj }));
+      
+      // Then update storage
+      try {
+        const storage = remember ? localStorage : sessionStorage;
+        storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+        console.log('Auth data stored in', remember ? 'localStorage' : 'sessionStorage');
+      } catch (storageError) {
+        console.error('Error storing auth data:', storageError);
+        // Don't fail login if storage fails, but log it
       }
+      
+      console.log('Auth state updated and stored');
     } catch (err: any) {
       console.error('Login error', err);
       setError(err.response?.data?.message || 'Invalid credentials');
@@ -102,22 +154,41 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   const logout = useCallback(() => {
+    console.log('Logging out...');
+    // Clear all auth storage
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    
+    // Clear state
     setUser(null);
     setTokens(null);
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    if (sessionTimeout) clearTimeout(sessionTimeout);
+    
+    // Clear any pending timeouts
+    if (sessionTimeout) {
+      clearTimeout(sessionTimeout);
+      setSessionTimeout(null);
+    }
+    
+    // Force a reload to clear any cached data
+    window.location.href = '/login';
   }, [sessionTimeout]);
 
-  const value: AuthContextType = {
-    user,
-    tokens,
-    login,
-    logout,
-    isLoading,
-    error,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        tokens,
+        setUser,
+        setTokens,
+        login,
+        logout,
+        isLoading,
+        error,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 // useAuth hook

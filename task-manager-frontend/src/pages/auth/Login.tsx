@@ -29,12 +29,37 @@ export default function Login() {
   const onSubmit = async (data: LoginFormInputs) => {
     setFormError(null);
     try {
-      // Accept username or email in the same field, always send as 'username' to backend
       const identifier = typeof data.email === 'string' ? data.email : '';
       const password = typeof data.password === 'string' ? data.password : '';
-      // Optionally: add email regex check here if you want to treat differently
+      
+      console.log('Attempting login...');
       await login(identifier, password, !!data.remember);
-      // Redirect logic handled by parent router
+      
+      // Give the state a moment to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Check both storage locations for auth data
+      let authData = localStorage.getItem('taskmanager_auth') || 
+                    sessionStorage.getItem('taskmanager_auth');
+      
+      console.log('Stored auth data after login:', authData);
+      
+      if (!authData) {
+        throw new Error('Authentication data not found in storage');
+      }
+      
+      // Parse the auth data to verify tokens
+      try {
+        const parsedAuth = JSON.parse(authData);
+        if (!parsedAuth?.tokens?.accessToken) {
+          throw new Error('No access token found in stored auth data');
+        }
+        console.log('Login successful, redirecting to dashboard');
+        window.location.href = '/dashboard';
+      } catch (parseError) {
+        console.error('Error parsing auth data:', parseError);
+        throw new Error('Failed to process authentication data');
+      }
     } catch (err: any) {
       setFormError(err.message || 'Login failed');
     }
