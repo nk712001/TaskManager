@@ -17,11 +17,10 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Set;
+import java.util.Collections;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     @Autowired
     private JwtUtil jwtUtil;
     @Autowired
@@ -30,7 +29,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(@org.springframework.lang.NonNull HttpServletRequest request, @org.springframework.lang.NonNull HttpServletResponse response, @org.springframework.lang.NonNull FilterChain filterChain)
             throws ServletException, IOException {
-        logger.info("JwtAuthenticationFilter: Filter triggered for URI: {}", request.getRequestURI());
         String jwt = getJwtFromRequest(request);
         if (StringUtils.hasText(jwt)) {
             try {
@@ -38,22 +36,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     User user = userRepository.findByUsername(username).orElse(null);
                     if (user != null && jwtUtil.validateToken(jwt, username)) {
-    logger.info("JWT Filter: Valid token for user {}", username);
-                        Set<org.springframework.security.core.GrantedAuthority> authorities = user.getRoles().stream()
-    .map(role -> new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + role.getName()))
-    .collect(java.util.stream.Collectors.toSet());
-logger.info("JWT Filter: Setting authentication for user {} with authorities {}", user.getUsername(), authorities);
-UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-    user, null, authorities);
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                user, null, Collections.emptyList());
                         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(authentication);
                     }
                 }
             } catch (ExpiredJwtException ex) {
-    logger.warn("JWT Filter: Expired JWT token: {}", ex.getMessage());
-} catch (Exception ex) {
-    logger.error("JWT Filter: Exception during JWT processing", ex);
-}
+                // Optionally handle expired token
+            } catch (Exception ex) {
+                // Optionally handle invalid token
+            }
         }
         filterChain.doFilter(request, response);
     }
