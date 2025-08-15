@@ -36,11 +36,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     User user = userRepository.findByUsername(username).orElse(null);
                     if (user != null && jwtUtil.validateToken(jwt, username)) {
-                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                                user, null, Collections.emptyList());
-                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(authentication);
-                    }
+    // Extract roles from JWT and map to authorities
+    java.util.List<String> roles = jwtUtil.getClaimFromToken(jwt, claims -> claims.get("roles", java.util.List.class));
+    java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities = roles != null
+        ? roles.stream().map(org.springframework.security.core.authority.SimpleGrantedAuthority::new).toList()
+        : java.util.Collections.emptyList();
+    System.out.println("JWT roles: " + roles);
+    System.out.println("Authorities set: " + authorities);
+    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+        user, null, authorities
+    );
+    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+}
                 }
             } catch (ExpiredJwtException ex) {
                 // Optionally handle expired token
