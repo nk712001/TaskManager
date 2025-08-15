@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.config.Customizer;
 
 @Configuration
 @EnableWebSecurity
@@ -59,9 +58,21 @@ public class SecurityConfig {
     }
 
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    System.out.println("DEBUG: Minimal SecurityConfig loaded");
-    http.csrf(csrf -> csrf.disable())
-        .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
-    return http.build();
-}
+        http
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/v1/projects/**").authenticated()
+                        .requestMatchers("/api/v1/projects").authenticated()
+                        .anyRequest().permitAll())
+                // .userDetailsService(customUserDetailsService)
+                .authenticationProvider(authenticationProvider())
+                .exceptionHandling(exception -> exception.accessDeniedHandler(accessDeniedHandler()))
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // JWT filter
+                                                                                                       // runs before
+                                                                                                       // username/password
+                                                                                                       // login
+        return http.build();
+    }
 }
