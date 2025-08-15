@@ -46,7 +46,10 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword())
             );
             org.springframework.security.core.userdetails.User principal = (org.springframework.security.core.userdetails.User) authentication.getPrincipal();
-            String jwt = jwtUtil.generateToken(principal.getUsername());
+            java.util.List<String> roles = principal.getAuthorities().stream().map(org.springframework.security.core.GrantedAuthority::getAuthority).toList();
+            logger.info("DEBUG: User roles on login: {}", roles);
+            String jwt = jwtUtil.generateToken(principal.getUsername(), roles);
+            logger.info("DEBUG: JWT issued: {}", jwt);
             return ResponseEntity.ok(jwt);
         } catch (Exception e) {
             logger.error("DEBUG: Login failed for username: {} - {}", user.getUsername(), e.getMessage());

@@ -49,9 +49,12 @@ public class ProjectController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @PostMapping
     public ResponseEntity<ProjectDTO> createProject(@RequestBody Project project) {
+        org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ProjectController.class);
+        logger.info("ProjectController: createProject called");
+        logger.info("ProjectController: createProject called for project name {} by owner {}", project.getName(), project.getOwner() != null ? project.getOwner().getId() : null);
         Project created = projectService.createProject(project);
         return ResponseEntity.ok(EntityToDTOMapper.toProjectDTO(created));
     }

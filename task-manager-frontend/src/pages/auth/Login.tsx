@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Button, Checkbox, Form, Input, Alert, Card } from 'antd';
 
 const loginSchema = z.object({
-  email: z.string().email({ message: 'Invalid email address' }),
+  identifier: z.string().min(3, { message: 'Enter a valid username or email' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
   remember: z.boolean().optional(),
 });
@@ -29,7 +29,7 @@ export default function Login() {
   const onSubmit = async (data: LoginFormInputs) => {
     setFormError(null);
     try {
-      const identifier = typeof data.email === 'string' ? data.email : '';
+      const identifier = typeof data.identifier === 'string' ? data.identifier : '';
       const password = typeof data.password === 'string' ? data.password : '';
       
       console.log('Attempting login...');
@@ -98,17 +98,17 @@ export default function Login() {
             </p>
           </div>
           <Form layout="vertical" onFinish={handleSubmit(onSubmit)}>
-            <Form.Item label="Email" validateStatus={errors.email ? 'error' : ''} help={errors.email?.message}>
+            <Form.Item label="Username or Email" validateStatus={errors.identifier ? 'error' : ''} help={errors.identifier?.message}>
               <Controller
-                name="email"
+                name="identifier"
                 control={control}
                 defaultValue=""
                 render={({ field }) => (
                   <Input
                     {...field}
-                    autoComplete="email"
+                    autoComplete="username"
                     size="large"
-                    placeholder="Enter your email"
+                    placeholder="Enter your username or email"
                   />
                 )}
               />

@@ -41,6 +41,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ResponseEntity<Map<String, Object>> handleAllOtherExceptions(Exception ex, WebRequest request) {
+        org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        logger.error("GlobalExceptionHandler: Unhandled exception", ex);
+        ex.printStackTrace();
         Map<String, Object> body = new HashMap<>();
         body.put("error", "Internal Server Error");
         body.put("message", ex.getMessage());

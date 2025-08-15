@@ -74,7 +74,6 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         <Sidebar
           isMobile={isMobile}
           open={sidebarOpen}
-          onOpen={handleSidebarOpen}
           onClose={handleSidebarClose}
         />
       </StyledSidebar>

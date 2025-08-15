@@ -1,13 +1,6 @@
-import { Card, Typography } from 'antd';
-import { SmileOutlined } from '@ant-design/icons';
-import styled from 'styled-components';
+import { Typography } from 'antd';
 
-const { Title, Paragraph } = Typography;
-
-const StyledCard = styled(Card)`
-  text-align: center;
-  margin-top: 24px;
-`;
+const { Title } = Typography;
 
 import OverviewCards from '../../components/dashboard/OverviewCards';
 import StatusSummaryChart from '../../components/dashboard/StatusSummaryChart';

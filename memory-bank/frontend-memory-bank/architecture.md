@@ -32,6 +32,39 @@ These files enable local development parity with production, support hot reloadi
 - **@types/***: TypeScript type definitions for all dependencies.
 - **react-error-boundary**: Error boundary component for React.
 
+### Theming and Theme Provider
+- **theme.ts**: Centralizes theme tokens (colors, fonts, radius) for the app. Exports `lightTheme` (and a `darkTheme` scaffold) in Ant Design's ThemeConfig format.
+- **App.tsx**: Wraps the app in both Ant Design's `ConfigProvider` and styled-components' `ThemeProvider`, using the same tokens. This ensures Ant Design components and custom styled-components share a single source of truth for theming. Ready for future dark/light mode.
+
+### Project Management
+
+#### Project API Abstraction
+- **Location**: `src/api/projects.ts`
+- **Purpose**: Provides a type-safe abstraction for all project-related backend operations using Axios.
+- **Functions**:
+  - `fetchProjects()`: Fetches all projects from the backend.
+  - `createProject()`: Creates a new project (expects name, description, owner).
+  - `updateProject()`: Updates an existing project by ID (partial update supported).
+  - `deleteProject()`: Deletes a project by ID.
+- **Type Safety**: All functions use the `Project` TypeScript interface, ensuring compile-time safety and clear API contracts.
+- **Error Handling**: Errors are surfaced to the UI via React Query's mutation hooks and Ant Design's message/alert components.
+
+#### Projects Page (CRUD UI)
+- **Location**: `src/pages/projects/Projects.tsx`
+- **Purpose**: Displays all projects in a table and allows users to create, edit, or delete projects.
+- **Features**:
+  - Uses Ant Design's `Table` for listing, and `Modal`/`Form` for create/edit dialogs.
+  - Integrates with React Query for all data fetching and mutations, ensuring UI stays in sync with backend state.
+  - Edit and delete actions are available per row; create is available via the "New Project" button.
+  - All forms are type-safe and validated; errors are shown to the user.
+- **Data Flow**:
+  - Table data comes from `useQuery` using `fetchProjects`.
+  - Create/edit/delete use `useMutation` hooks, which trigger `invalidateQueries` to refetch project data on success.
+  - Modal forms are controlled by local state and reset after each operation.
+- **UI/UX**: Consistent Ant Design look and feel, with loading and error states for all actions.
+
+---
+
 ### Layout Components
 
 #### AppLayout
@@ -45,6 +78,36 @@ These files enable local development parity with production, support hot reloadi
     - Uses Ant Design's `useBreakpoint` to detect mobile/desktop.
     - Controls sidebar Drawer state and passes `isMobile`/handlers to Sidebar and Header.
     - Adjusts content margin and width based on screen size, so content uses full width on mobile.
+
+#### Dashboard
+- **Location**: `src/pages/dashboard/Dashboard.tsx`
+- **Purpose**: Main dashboard page, providing an overview of projects, tasks, and recent activity for authenticated users.
+- **Features**:
+  - Displays high-level summary cards, a task status summary chart, and a recent activity feed.
+  - Fetches dashboard data via hooks (`useDashboardStats`, `useRecentActivities`) and displays loading/error states for each section.
+  - Protected by `PrivateRoute` and always wrapped in `AppLayout` for consistent navigation and theming.
+
+#### StatusSummaryChart
+- **Location**: `src/components/dashboard/StatusSummaryChart.tsx`
+- **Purpose**: Visualizes the breakdown of task statuses (e.g., Completed, Pending, etc.) in the dashboard.
+- **Features**:
+  - Receives an array of status objects and renders a progress bar for each status using Ant Design's `Progress` component.
+  - Shows both count and percentage for each status, providing a quick visual summary.
+  - Used within the dashboard, but can be reused elsewhere for task status breakdowns.
+
+#### RecentActivityFeed
+- **Location**: `src/components/dashboard/RecentActivityFeed.tsx`
+- **Purpose**: Displays a feed of recent user actions (task/project creation, completion, comments, etc.) for at-a-glance project activity.
+- **Features**:
+  - Renders user avatars, action descriptions, targets, and timestamps in a list format using Ant Design's `List` and `Avatar` components.
+  - Receives activity data as a prop and is integrated into the dashboard.
+  - Designed for extensibility and can be reused in other parts of the app.
+
+#### Dashboard Data Flow and Protection
+- **Data Fetching**: Dashboard components use React Query hooks to fetch and cache server data, ensuring efficient updates and error handling.
+  - The recent activity feed uses the `useRecentActivities` hook, which fetches activity data (mocked for development) from the API layer.
+- **Route Protection**: The dashboard is only accessible to authenticated users, enforced via the `PrivateRoute` component. If a user is not authenticated, they are redirected to the login page.
+- **Layout Integration**: The dashboard is always rendered inside `AppLayout`, ensuring consistent navigation (Sidebar, Header, Footer) and theming across the app.
 
 #### Header
 - **Location**: `src/components/layout/Header.tsx`

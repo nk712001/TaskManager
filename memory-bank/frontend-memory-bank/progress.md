@@ -61,16 +61,36 @@
   - Header displays a hamburger menu button on mobile to open the sidebar Drawer.
   - Layout and content margins adapt for mobile/desktop using Ant Design's useBreakpoint.
   - Fixed mobile layout to eliminate left margin gap; content now uses full width on small screens.
-- [ ] Set up theme provider
+- [x] Set up theme provider
+  - Created `theme.ts` for centralized theme configuration (light/dark scaffolding).
+  - Integrated Ant Design `ConfigProvider` and styled-components `ThemeProvider` in `App.tsx`.
+  - Ensured both providers use the same theme tokens for consistent theming.
+  - Fixed TypeScript lint errors for type-only imports and provider props.
 
 ## Phase 4: Dashboard
-- [ ] Create dashboard layout
-- [ ] Implement task status summary
-- [ ] Add recent activity feed
+- [x] Create dashboard layout
+  - Created `Dashboard.tsx` in `src/pages/dashboard/` with a responsive layout using Ant Design and styled-components.
+  - Integrated dashboard into router, protected by `PrivateRoute`, and ensured it uses `AppLayout` for consistent navigation and theming.
+  - Scaffolded sections for overview cards, task status summary, and recent activity feed.
+- [x] Implement task status summary
+  - Implemented `StatusSummaryChart.tsx` in `src/components/dashboard/`, which visualizes task statuses (e.g., Completed, Pending) using Ant Design's `Progress` component.
+  - The chart receives data from the backend via `useDashboardStats` and displays a progress bar for each status, showing both count and percentage.
+  - Integrated error and loading states for robust UX.
+- [x] Add recent activity feed
+  - Implemented `RecentActivityFeed.tsx` in `src/components/dashboard/`, rendering a list of recent user actions with avatars, actions, targets, and timestamps.
+  - Integrated with the dashboard page, using data from the `useRecentActivities` hook.
+  - Mocked activity data in `fetchRecentActivities` for development/demo purposes until backend endpoint is available.
 
 ## Phase 5: Project Management
-- [ ] Implement project listing
-- [ ] Create project CRUD operations
+- [x] Implement project listing
+  - Created `Projects.tsx` in `src/pages/projects/`, displaying a table of projects with columns for name, description, owner, and created date.
+  - Used Ant Design's `Table` for responsive, sortable listing and included action buttons (View, Edit, Delete) for future CRUD operations.
+  - Integrated with React Query and a mock API function for development/demo data until backend is ready.
+- [x] Create project CRUD operations
+  - Created `src/api/projects.ts` with full CRUD API functions (`fetchProjects`, `createProject`, `updateProject`, `deleteProject`).
+  - Refactored `Projects.tsx` to use real API and React Query for all project operations.
+  - Added Ant Design modal forms for create/edit, and confirmation for delete.
+  - All mutation and type errors resolved; code validated and confirmed working by user.
 - [ ] Add project details view
 
 ## Phase 6: Task Management

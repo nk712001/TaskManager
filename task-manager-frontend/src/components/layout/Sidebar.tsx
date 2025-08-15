@@ -44,11 +44,10 @@ import type { FC } from 'react';
 interface SidebarProps {
   isMobile: boolean;
   open: boolean;
-  onOpen: () => void;
   onClose: () => void;
 }
 
-const Sidebar: FC<SidebarProps> = ({ isMobile, open, onOpen, onClose }) => {
+const Sidebar: FC<SidebarProps> = ({ isMobile, open, onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
 

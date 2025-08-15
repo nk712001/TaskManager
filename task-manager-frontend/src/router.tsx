@@ -9,12 +9,8 @@ import type { ReactNode } from 'react';
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
 const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
-
-// Placeholder pages for other routes
-const Projects = () => <div>Projects Page</div>;
-const Tasks = () => <div>Tasks Page</div>;
-const Users = () => <div>Users Page</div>;
-const Settings = () => <div>Settings Page</div>;
+const Projects = lazy(() => import('./pages/projects/Projects'));
+const ProjectDetails = lazy(() => import('./pages/projects/ProjectDetails'));
 
 // Loading component for Suspense fallback
 const Loading = () => (
@@ -48,9 +44,7 @@ export default function AppRouter(): ReactNode {
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/projects" element={<Projects />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/users" element={<Users />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/projects/:id" element={<ProjectDetails />} />
           </Route>
 
           {/* Redirect all other routes to login */}
