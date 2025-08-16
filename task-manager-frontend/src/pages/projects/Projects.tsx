@@ -8,21 +8,35 @@ import type { ColumnsType } from 'antd/es/table';
 import { fetchProjects, createProject, updateProject, deleteProject } from '../../api/projects';
 import type { Project } from '../../api/projects';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { Title } = Typography;
 
 
 const Projects: React.FC = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  
   const queryClient = useQueryClient();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
-  const { data, isLoading, isError } = useQuery<Project[]>({ queryKey: ['projects'], queryFn: fetchProjects });
+  const { data: projects, isLoading, isError } = useQuery<Project[]>({ queryKey: ['projects'], queryFn: fetchProjects });
+
 
   const createMutation = useMutation({
-    mutationFn: (values: { name: string; description: string; ownerId: string }) => createProject(values),
+    mutationFn: (values: ProjectFormInputs) => {
+      // Ensure ownerId is properly converted to a number
+      const ownerId = typeof values.ownerId === 'string' ? parseInt(values.ownerId, 10) : values.ownerId;
+      return createProject({
+        name: values.name,
+        description: values.description,
+        owner: { id: ownerId },
+        tasks: []
+      });
+    },
     onSuccess: () => {
       message.success('Project created');
       queryClient.invalidateQueries({ queryKey: ['projects'] });
@@ -39,7 +53,14 @@ const Projects: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, values }: { id: string; values: Partial<Omit<Project, 'id' | 'createdAt'>> }) => updateProject(id, values),
+    mutationFn: ({ id, ...values }: { id: string } & { name: string; description: string; owner: { id: number }; tasks: any[] }) => {
+      // Ensure owner ID is properly handled
+      const ownerId = typeof values.owner?.id === 'string' ? parseInt(values.owner.id, 10) : values.owner?.id;
+      return updateProject(id, {
+        ...values,
+        owner: { id: ownerId }
+      });
+    },
     onSuccess: () => {
       message.success('Project updated');
       queryClient.invalidateQueries({ queryKey: ['projects'] });
@@ -71,10 +92,18 @@ const Projects: React.FC = () => {
     form.resetFields();
   };
 
-  const handleEdit = (project: Project) => {
+  const handleEdit = async (project: Project) => {
+    const ownerId = project.owner?.id || project.ownerId;
+    const initialValues = {
+      name: project.name,
+      description: project.description,
+      // Ensure ownerId is a string for the form
+      ownerId: ownerId ? String(ownerId) : 
+              project.ownerId ? String(project.ownerId) : '',
+    };
     setEditingProject(project);
     setModalVisible(true);
-    form.setFieldsValue(project);
+    form.setFieldsValue(initialValues);
   };
 
   const handleView = (id: string) => {
@@ -99,13 +128,15 @@ const Projects: React.FC = () => {
     },
     {
       title: 'Owner',
-      dataIndex: 'owner',
-      key: 'owner',
+      dataIndex: 'ownerName',
+      key: 'ownerName',
+      render: (name: string) => name || '-',
     },
     {
       title: 'Created At',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      render: (date: string) => date ? new Date(date).toLocaleString() : '-',
     },
     {
       title: 'Actions',
@@ -113,10 +144,14 @@ const Projects: React.FC = () => {
       render: (_, record) => (
         <Space>
           <Button type="link" onClick={() => handleView(record.id)}>View</Button>
-          <Button type="link" onClick={() => handleEdit(record)}>Edit</Button>
-          <Popconfirm title="Are you sure delete this project?" onConfirm={() => handleDelete(record.id)} okText="Yes" cancelText="No">
-            <Button type="link" danger loading={deleteMutation.isPending}>Delete</Button>
-          </Popconfirm>
+          {isAdmin && (
+            <>
+              <Button type="link" onClick={() => handleEdit(record)}>Edit</Button>
+              <Popconfirm title="Are you sure delete this project?" onConfirm={() => handleDelete(record.id)} okText="Yes" cancelText="No">
+                <Button type="link" danger loading={deleteMutation.isPending}>Delete</Button>
+              </Popconfirm>
+            </>
+          )}
         </Space>
       ),
     },
@@ -126,7 +161,9 @@ const Projects: React.FC = () => {
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: 24 }}>
       <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 24 }}>
         <Title level={2} style={{ margin: 0 }}>Projects</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>New Project</Button>
+        {isAdmin && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>New Project</Button>
+          )}
       </Space>
       {isLoading ? (
         <Spin />
@@ -134,45 +171,51 @@ const Projects: React.FC = () => {
         <Alert type="error" message="Failed to load projects." />
       ) : (
         <Table
-          columns={columns}
-          dataSource={data ?? []}
-          rowKey="id"
-          pagination={{ pageSize: 8 }}
-        />
+           columns={columns}
+           dataSource={projects ?? []}
+           rowKey="id"
+           pagination={{ pageSize: 8 }}
+         />
       )}
       <Modal
         title={editingProject ? 'Edit Project' : 'New Project'}
         open={modalVisible}
         onCancel={() => { setModalVisible(false); setEditingProject(null); }}
-        footer={null}
         destroyOnClose
+        footer={null}
       >
         <ProjectForm
           initialValues={editingProject || undefined}
           loading={createMutation.isPending || updateMutation.isPending}
           error={createMutation.isError ? 'Failed to create project' : updateMutation.isError ? 'Failed to update project' : undefined}
-          onSubmit={(values: ProjectFormInputs) => {
-            if (editingProject) {
-              updateMutation.mutate({ id: editingProject.id, values: {
-                name: values.name,
-                description: values.description,
-                ownerId: Number(values.ownerId)
-              } }, {
-                onSuccess: () => {
-                  setModalVisible(false);
-                  setEditingProject(null);
-                }
-              });
-            } else {
-              createMutation.mutate({
-                name: values.name,
-                description: values.description,
-                ownerId: Number(values.ownerId)
-              }, {
-                onSuccess: () => {
-                  setModalVisible(false);
-                }
-              });
+          
+          onSubmit={async (values: ProjectFormInputs) => {
+            try {
+              if (editingProject) {
+                // For update, use the updateProject API directly
+                await updateProject(editingProject.id, {
+                  name: values.name,
+                  description: values.description,
+                  owner: { id: Number(values.ownerId) }
+                });
+                message.success('Project updated successfully');
+                queryClient.invalidateQueries({ queryKey: ['projects'] });
+                setModalVisible(false);
+                setEditingProject(null);
+              } else {
+                // For create, use the createProject API directly
+                await createProject({
+                  name: values.name,
+                  description: values.description,
+                  owner: { id: Number(values.ownerId) }
+                });
+                message.success('Project created successfully');
+                queryClient.invalidateQueries({ queryKey: ['projects'] });
+                setModalVisible(false);
+              }
+            } catch (error) {
+              console.error('Error saving project:', error);
+              message.error('Failed to save project');
             }
           }}
         />

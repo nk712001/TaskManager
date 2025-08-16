@@ -24,7 +24,7 @@ const ProjectDetails: React.FC = () => {
     <Card style={{ maxWidth: 600, margin: '2rem auto' }}>
       <Title level={2}>{data.name}</Title>
       <Paragraph><Text strong>Description: </Text>{data.description}</Paragraph>
-      <Paragraph><Text strong>Owner: </Text>{data.owner}</Paragraph>
+      <Paragraph><Text strong>Owner: </Text>{data.ownerName}</Paragraph>
       <Paragraph><Text strong>Created At: </Text>{data.createdAt}</Paragraph>
       <Button onClick={() => navigate(-1)} style={{ marginTop: 16 }}>Back to Projects</Button>
     </Card>

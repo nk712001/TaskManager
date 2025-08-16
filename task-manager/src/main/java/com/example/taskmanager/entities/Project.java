@@ -27,5 +27,22 @@ public class Project {
     private User owner;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private Set<Task> tasks = new HashSet<>();
+    
+    // Helper methods for bidirectional relationship
+    public void addTask(Task task) {
+        tasks.add(task);
+        task.setProject(this);
+    }
+    
+    public void removeTask(Task task) {
+        tasks.remove(task);
+        task.setProject(null);
+    }
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @org.hibernate.annotations.CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private java.util.Date createdAt;
 }

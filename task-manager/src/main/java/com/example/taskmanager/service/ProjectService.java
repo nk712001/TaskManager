@@ -4,6 +4,8 @@ import com.example.taskmanager.entities.Project;
 import com.example.taskmanager.repository.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +30,7 @@ public class ProjectService {
         return projectRepository.save(project);
     }
 
+    @Transactional
     public Project updateProject(Long id, Project updatedProject) {
         System.out.println("ProjectService: Starting update for project ID: " + id);
         
@@ -37,25 +40,18 @@ public class ProjectService {
                         "Current Name: " + project.getName() + 
                         ", Current Owner ID: " + (project.getOwner() != null ? project.getOwner().getId() : "null"));
                     
-                    // Log changes
-                    if (!project.getName().equals(updatedProject.getName())) {
-                        System.out.println("ProjectService: Updating name from '" + project.getName() + "' to '" + updatedProject.getName() + "'");
-                    }
-                    if (!project.getDescription().equals(updatedProject.getDescription())) {
-                        System.out.println("ProjectService: Updating description");
-                    }
-                    if (project.getOwner() == null || 
-                        updatedProject.getOwner() == null || 
-                        !project.getOwner().getId().equals(updatedProject.getOwner().getId())) {
-                        System.out.println("ProjectService: Changing owner from " + 
-                            (project.getOwner() != null ? project.getOwner().getId() : "null") + 
-                            " to " + (updatedProject.getOwner() != null ? updatedProject.getOwner().getId() : "null"));
-                    }
-                    
+                    // Only update the fields we want to allow updating
                     project.setName(updatedProject.getName());
                     project.setDescription(updatedProject.getDescription());
-                    project.setOwner(updatedProject.getOwner());
-                    project.setTasks(updatedProject.getTasks());
+                    
+                    // Only update owner if it's provided in the updated project
+                    if (updatedProject.getOwner() != null) {
+                        System.out.println("ProjectService: Updating owner to ID: " + updatedProject.getOwner().getId());
+                        project.setOwner(updatedProject.getOwner());
+                    }
+                    
+                    // Note: We don't update tasks here to avoid Hibernate issues
+                    // Tasks should be managed through dedicated endpoints
                     
                     Project savedProject = projectRepository.save(project);
                     System.out.println("ProjectService: Successfully updated project ID: " + savedProject.getId());
@@ -67,7 +63,11 @@ public class ProjectService {
                 });
     }
 
+    @Transactional
     public void deleteProject(Long id) {
+        if (!projectRepository.existsById(id)) {
+            throw new RuntimeException("Project not found with ID: " + id);
+        }
         projectRepository.deleteById(id);
     }
 }

@@ -27,47 +27,69 @@ export const fetchDashboardStats = async () => {
   };
 };
 
-export const fetchRecentActivities = async () => {
-  // Option 1: If backend provides an activity endpoint, use it:
-  // const { data } = await api.get('/v1/activity/recent');
-  // return data;
+export interface ActivityItem {
+  id: string;
+  action: string;
+  target: string;
+  timestamp: string;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+  };
+}
 
-  // Option 2: Mock data for development/demo
-  return [
-    {
-      id: '1',
-      user: 'Alice',
-      action: 'created task',
-      target: 'Design landing page',
-      time: '2 minutes ago',
-    },
-    {
-      id: '2',
-      user: 'Bob',
-      action: 'completed task',
-      target: 'API integration',
-      time: '10 minutes ago',
-    },
-    {
-      id: '3',
-      user: 'Carol',
-      action: 'updated project',
-      target: 'Website Redesign',
-      time: '30 minutes ago',
-    },
-    {
-      id: '4',
-      user: 'Dave',
-      action: 'commented on',
-      target: 'Fix login bug',
-      time: '1 hour ago',
-    },
-    {
-      id: '5',
-      user: 'Eve',
-      action: 'assigned task',
-      target: 'Write documentation',
-      time: '2 hours ago',
-    },
-  ];
+export const fetchRecentActivities = async (): Promise<ActivityItem[]> => {
+  try {
+    // Fetch both projects and tasks to generate recent activities
+    const [projectsRes, tasksRes] = await Promise.all([
+      api.get('/v1/projects'),
+      api.get('/v1/tasks'),
+    ]);
+
+    const projects = projectsRes.data || [];
+    const tasks = tasksRes.data || [];
+
+    // Generate activities from projects (e.g., project creation)
+    const projectActivities: ActivityItem[] = projects.slice(0, 5).map((project: any) => ({
+      id: `project-${project.id}`,
+      action: 'created project',
+      target: project.name,
+      timestamp: project.createdAt || new Date().toISOString(),
+      user: {
+        id: project.ownerId?.toString() || '1',
+        username: project.ownerName,
+        email: project.owner?.email || 'user@example.com',
+      },
+    }));
+
+    // Generate activities from tasks (e.g., task updates)
+    const taskActivities: ActivityItem[] = tasks
+      .sort((a: any, b: any) => 
+        new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
+      )
+      .slice(0, 5)
+      .map((task: any) => ({
+        id: `task-${task.id}`,
+        action: `updated task to ${task.status}`,
+        target: task.title,
+        timestamp: task.updatedAt || task.createdAt || new Date().toISOString(),
+        user: {
+          id: task.assigneeId?.toString() || task.creatorId?.toString() || '1',
+          username: task.assignee?.username || task.creator?.username || 'User',
+          email: task.assignee?.email || task.creator?.email || 'user@example.com',
+        },
+      }));
+
+    // Combine and sort all activities by timestamp
+    const allActivities = [...projectActivities, ...taskActivities].sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    // Return the 5 most recent activities
+    return allActivities.slice(0, 5);
+  } catch (error) {
+    console.error('Error fetching recent activities:', error);
+    return [];
+  }
 };

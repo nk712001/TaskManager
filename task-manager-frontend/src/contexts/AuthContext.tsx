@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import api from '../api/axios';
+import { parseJwt } from '../utils/jwt';
 
 // Types for Auth State and Context
 export interface AuthUser {
@@ -111,13 +112,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         throw new Error('No token received from server');
       }
       
-      // Create a minimal user object
+      // Decode JWT and extract user info
+      console.log('Raw JWT token:', token);
+      console.log('Calling parseJwt...');
+      const payload = parseJwt(token);
+      console.log('parseJwt returned:', payload);
+      if (!payload) {
+        console.error('parseJwt returned null or undefined. Token may be malformed or not a JWT.');
+      }
+      console.log('Decoded JWT payload:', payload);
       const userObj: AuthUser = {
-        id: 'temp-id',  // You might want to decode the token to get user info
-        email: username,
-        name: username.split('@')[0],
-        role: 'user'  // Default role
+        id: payload?.sub || 'unknown',
+        email: payload?.email || username,
+        name: payload?.name || payload?.username || username.split('@')[0],
+        role: payload?.role || 'user',
       };
+      console.log('AuthUser object constructed:', userObj);
       
       const tokensObj: AuthTokens = { 
         accessToken: token,

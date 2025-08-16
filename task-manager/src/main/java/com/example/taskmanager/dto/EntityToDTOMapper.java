@@ -15,7 +15,12 @@ public class EntityToDTOMapper {
         if (project == null) return null;
         Set<TaskDTO> tasks = project.getTasks() != null ? project.getTasks().stream().map(EntityToDTOMapper::toTaskDTO).collect(Collectors.toSet()) : null;
         Long ownerId = project.getOwner() != null ? project.getOwner().getId() : null;
-        return new ProjectDTO(project.getId(), project.getName(), project.getDescription(), ownerId, tasks);
+        String ownerName = project.getOwner() != null ? project.getOwner().getUsername() : null;
+        String createdAt = project.getCreatedAt() != null ? project.getCreatedAt().toInstant().toString() : null;
+        ProjectDTO dto = new ProjectDTO(project.getId(), project.getName(), project.getDescription(), ownerId, tasks);
+        dto.setOwnerName(ownerName);
+        dto.setCreatedAt(createdAt);
+        return dto;
     }
 
     public static TaskDTO toTaskDTO(Task task) {

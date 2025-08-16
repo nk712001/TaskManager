@@ -1,10 +1,19 @@
 import api from './axios';
 
+export interface UserRef {
+  id: number;
+  email: string;
+  name?: string;
+}
+
 export interface Project {
   id: string;
   name: string;
   description: string;
-  owner: string;
+  ownerName: string;
+  ownerId: string;
+  owner?: UserRef;
+  tasks?: any[];  // Made optional with ?
   createdAt: string;
 }
 
@@ -18,12 +27,12 @@ export const fetchProjectById = async (id: string): Promise<Project> => {
   return data;
 };
 
-export const createProject = async (project: Omit<Project, 'id' | 'createdAt'>): Promise<Project> => {
+export const createProject = async (project: { name: string; description: string; owner: { id: number }; tasks?: any[] }): Promise<Project> => {
   const { data } = await api.post('/v1/projects', project);
   return data;
 };
 
-export const updateProject = async (id: string, project: Partial<Omit<Project, 'id' | 'createdAt'>>): Promise<Project> => {
+export const updateProject = async (id: string, project: { name: string; description: string; owner: { id: number }; tasks?: any[] }): Promise<Project> => {
   const { data } = await api.put(`/v1/projects/${id}`, project);
   return data;
 };

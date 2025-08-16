@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Spin } from 'antd';
+import type { AuthUser } from '../../contexts/AuthContext';
+import { parseJwt } from '../../utils/jwt';
 
 interface PrivateRouteProps {
   children?: ReactNode;
@@ -25,15 +27,48 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
           console.log('Loaded auth state from storage:', parsedAuth);
           
           // Update auth context if not already set
-          if (parsedAuth.user && parsedAuth.tokens?.accessToken) {
-            setUser(parsedAuth.user);
-            setTokens(parsedAuth.tokens);
-          } else {
-            console.log('Invalid auth data format');
-            // Clear invalid auth data
-            localStorage.removeItem('taskmanager_auth');
-            sessionStorage.removeItem('taskmanager_auth');
+          if (parsedAuth.tokens?.accessToken) {
+            // Parse JWT to get user info
+            const decodedToken = parseJwt(parsedAuth.tokens.accessToken);
+            console.log('Decoded JWT from storage:', decodedToken);
+            
+            if (decodedToken) {
+              // Map JWT roles to our app's role format (ensuring type safety)
+              const mapRole = (roles: unknown = []): 'admin' | 'user' => {
+                const rolesArray = Array.isArray(roles) ? roles as string[] : [];
+                return rolesArray.includes('ROLE_ADMIN') ? 'admin' : 'user';
+              };
+              
+              const userFromToken: AuthUser = {
+                id: decodedToken.sub || 'unknown',
+                email: decodedToken.sub || '', // Using sub (email) as the email
+                name: decodedToken.sub?.split('@')[0] || 'User',
+                role: mapRole(decodedToken.roles)
+              };
+              
+              console.log('Mapped user from token:', userFromToken);
+              
+              // Update user with data from token
+              setUser(userFromToken);
+              setTokens(parsedAuth.tokens);
+              
+              // Update storage with complete user data
+              const updatedAuth = {
+                ...parsedAuth,
+                user: userFromToken
+              };
+              
+              const storage = localStorage.getItem('taskmanager_auth') ? localStorage : sessionStorage;
+              storage.setItem('taskmanager_auth', JSON.stringify(updatedAuth));
+              
+              return;
+            }
           }
+          
+          // If we get here, the token was invalid or missing required data
+          console.log('Invalid or expired auth data');
+          localStorage.removeItem('taskmanager_auth');
+          sessionStorage.removeItem('taskmanager_auth');
         } else {
           console.log('No auth data found in storage');
         }

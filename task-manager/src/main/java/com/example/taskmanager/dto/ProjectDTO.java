@@ -7,6 +7,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class ProjectDTO {
+    private String ownerName;
+    private String createdAt;
     private Long id;
     @NotBlank(message = "Project name is required")
     @Size(max = 100, message = "Project name cannot exceed 100 characters")
@@ -21,6 +23,12 @@ public class ProjectDTO {
     private Set<TaskDTO> tasks;
 
     public ProjectDTO() {}
+
+    public String getOwnerName() { return ownerName; }
+    public void setOwnerName(String ownerName) { this.ownerName = ownerName; }
+
+    public String getCreatedAt() { return createdAt; }
+    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 
     public ProjectDTO(Long id, String name, String description, Long ownerId, Set<TaskDTO> tasks) {
         this.id = id;
