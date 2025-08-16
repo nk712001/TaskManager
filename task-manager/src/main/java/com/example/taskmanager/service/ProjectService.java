@@ -45,10 +45,7 @@ public class ProjectService {
             "Current Name: " + existingProject.getName() + 
             ", Current Owner ID: " + (existingProject.getOwner() != null ? existingProject.getOwner().getId() : "null"));
         
-        // Create a new set to avoid modifying the existing collection
-        Set<Task> existingTasks = new HashSet<>(existingProject.getTasks());
-        
-        // Update basic fields
+        // Only update the fields we want to allow updating
         existingProject.setName(updatedProject.getName());
         existingProject.setDescription(updatedProject.getDescription());
         
@@ -58,11 +55,10 @@ public class ProjectService {
             existingProject.setOwner(updatedProject.getOwner());
         }
         
-        // Clear and re-add tasks to maintain the collection reference
-        existingProject.getTasks().clear();
-        existingProject.getTasks().addAll(existingTasks);
+        // Don't touch the tasks collection at all during update
+        // Tasks should be managed separately through TaskService
         
-        // Explicitly save the changes
+        // Save and return the updated project
         Project savedProject = projectRepository.save(existingProject);
         System.out.println("ProjectService: Successfully updated project ID: " + savedProject.getId());
         return savedProject;

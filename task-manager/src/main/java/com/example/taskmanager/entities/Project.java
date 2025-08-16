@@ -29,22 +29,16 @@ public class Project implements Serializable {
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
     @Builder.Default
     private Set<Task> tasks = new HashSet<>();
     
-    // Helper method to add task
-    public void addTask(Task task) {
-        if (task != null) {
-            tasks.add(task);
-            task.setProject(this);
-        }
-    }
-    
-    // Helper method to remove task
-    public void removeTask(Task task) {
-        if (task != null && tasks.remove(task)) {
-            task.setProject(null);
+    // Initialize collection to avoid null pointer
+    @PostLoad
+    @PostPersist
+    private void init() {
+        if (tasks == null) {
+            tasks = new HashSet<>();
         }
     }
 
