@@ -193,10 +193,13 @@ const Projects: React.FC = () => {
             try {
               if (editingProject) {
                 // For update, use the updateProject API directly
-                await updateProject(editingProject.id, {
+                // Convert string ID to number for the backend
+                await updateProject(String(editingProject.id), {
                   name: values.name,
                   description: values.description,
-                  owner: { id: Number(values.ownerId) }
+                  owner: { id: Number(values.ownerId) },
+                  // Don't include tasks in the update
+                  tasks: undefined
                 });
                 message.success('Project updated successfully');
                 queryClient.invalidateQueries({ queryKey: ['projects'] });

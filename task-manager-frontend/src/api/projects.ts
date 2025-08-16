@@ -7,7 +7,7 @@ export interface UserRef {
 }
 
 export interface Project {
-  id: string;
+  id: string;  // Keep as string for frontend
   name: string;
   description: string;
   ownerName: string;

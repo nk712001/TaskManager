@@ -29,9 +29,17 @@ public class Project implements Serializable {
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "project", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH}, orphanRemoval = false)
     @Builder.Default
     private Set<Task> tasks = new HashSet<>();
+    
+    @PreUpdate
+    @PrePersist
+    private void prepareForSave() {
+        if (this.tasks == null) {
+            this.tasks = new HashSet<>();
+        }
+    }
     
     // Initialize collection to avoid null pointer
     @PostLoad

@@ -13,12 +13,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import com.example.taskmanager.dto.ProjectDTO;
 import com.example.taskmanager.dto.EntityToDTOMapper;
 import com.example.taskmanager.entities.Project;
 import com.example.taskmanager.entities.Task;
+import com.example.taskmanager.entities.User;
 import com.example.taskmanager.dto.TaskDTO;
 import com.example.taskmanager.service.TaskService;
 
@@ -56,23 +58,58 @@ public class ProjectController {
         return ResponseEntity.ok(EntityToDTOMapper.toProjectDTO(created));
     }
 
+    @SuppressWarnings("unchecked")
     @PutMapping("/{id}")
-    public ResponseEntity<ProjectDTO> updateProject(@PathVariable Long id, @RequestBody Project project) {
+    public ResponseEntity<ProjectDTO> updateProject(
+            @PathVariable String id,
+            @RequestBody Map<String, Object> updates) {
         try {
             System.out.println("ProjectController: Received update request for project ID: " + id);
-            System.out.println("ProjectController: Update data - " + 
-                "Name: " + project.getName() + 
-                ", Description: " + project.getDescription() + 
-                ", Owner ID: " + (project.getOwner() != null ? project.getOwner().getId() : "null"));
-                
-            Project updated = projectService.updateProject(id, project);
+            System.out.println("ProjectController: Update data: " + updates);
             
-            System.out.println("ProjectController: Successfully updated project ID: " + id);
+            // Convert string ID to Long
+            Long projectId;
+            try {
+                projectId = Long.parseLong(id);
+            } catch (NumberFormatException e) {
+                System.err.println("ProjectController: Invalid project ID format: " + id);
+                return ResponseEntity.badRequest().build();
+            }
+            
+            // Get the existing project
+            Project existingProject = projectService.getProjectById(projectId)
+                .orElseThrow(() -> new RuntimeException("Project not found with id: " + projectId));
+            
+            // Update only the fields that are present in the request
+            if (updates.containsKey("name")) {
+                existingProject.setName((String) updates.get("name"));
+            }
+            if (updates.containsKey("description")) {
+                existingProject.setDescription((String) updates.get("description"));
+            }
+            if (updates.containsKey("owner") && updates.get("owner") != null) {
+                Map<String, Object> ownerMap = (Map<String, Object>) updates.get("owner");
+                if (ownerMap.containsKey("id")) {
+                    Long ownerId = Long.parseLong(ownerMap.get("id").toString());
+                    User owner = new User();
+                    owner.setId(ownerId);
+                    existingProject.setOwner(owner);
+                }
+            }
+            
+            // Save the updated project
+            Project updated = projectService.updateProject(projectId, existingProject);
+            
+            System.out.println("ProjectController: Successfully updated project ID: " + projectId);
             return ResponseEntity.ok(EntityToDTOMapper.toProjectDTO(updated));
+            
+        } catch (NumberFormatException e) {
+            System.err.println("ProjectController: Number format exception: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
         } catch (RuntimeException e) {
             System.err.println("ProjectController: Error updating project ID: " + id + ". Error: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.internalServerError().build();
         }
     }
 

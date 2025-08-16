@@ -1,4 +1,4 @@
-    package com.example.taskmanager.service;
+package com.example.taskmanager.service;
 
 import com.example.taskmanager.entities.Project;
 import com.example.taskmanager.repository.ProjectRepository;
@@ -10,8 +10,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
-import com.example.taskmanager.entities.Task;
 
 @Service
 public class ProjectService {
@@ -38,12 +36,14 @@ public class ProjectService {
     public Project updateProject(Long id, Project updatedProject) {
         System.out.println("ProjectService: Starting update for project ID: " + id);
         
+        // Load the existing project with its tasks
         Project existingProject = projectRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Project not found with id: " + id));
             
         System.out.println("ProjectService: Found existing project - " + 
             "Current Name: " + existingProject.getName() + 
-            ", Current Owner ID: " + (existingProject.getOwner() != null ? existingProject.getOwner().getId() : "null"));
+            ", Current Owner ID: " + (existingProject.getOwner() != null ? existingProject.getOwner().getId() : "null") +
+            ", Task Count: " + (existingProject.getTasks() != null ? existingProject.getTasks().size() : 0));
         
         // Only update the fields we want to allow updating
         existingProject.setName(updatedProject.getName());
@@ -55,12 +55,15 @@ public class ProjectService {
             existingProject.setOwner(updatedProject.getOwner());
         }
         
-        // Don't touch the tasks collection at all during update
-        // Tasks should be managed separately through TaskService
+        // Ensure tasks collection is initialized and not null
+        if (existingProject.getTasks() == null) {
+            existingProject.setTasks(new HashSet<>());
+        }
         
         // Save and return the updated project
         Project savedProject = projectRepository.save(existingProject);
-        System.out.println("ProjectService: Successfully updated project ID: " + savedProject.getId());
+        System.out.println("ProjectService: Successfully updated project ID: " + savedProject.getId() +
+            ", Task Count After Update: " + (savedProject.getTasks() != null ? savedProject.getTasks().size() : 0));
         return savedProject;
     }
 
