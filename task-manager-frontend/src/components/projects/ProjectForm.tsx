@@ -1,8 +1,11 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button, Form, Input, Alert } from 'antd';
-import React from 'react';
+import { Button, Form, Input, Alert, Select } from 'antd';
+import React, { useCallback, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchUsers } from '../../api/users';
+import type { User } from '../../api/users';
 
 const projectSchema = z.object({
   name: z.string()
@@ -11,21 +14,14 @@ const projectSchema = z.object({
   description: z.string()
     .min(1, { message: 'Description is required' })
     .max(500, { message: 'Description must be less than 500 characters' }),
-  ownerId:  z.preprocess(
-    (val) => String(val), // 👈 Force everything into a string
-    z.string()
-      .min(1, { message: 'Please select an owner' })
-      .refine(val => val !== 'undefined' && val !== 'null', {
-        message: 'Please select a valid owner'
-      })
-  ),  
+  owner: z.object({
+    id: z.string().min(1, { message: 'Please select an owner' })
+  })
 });
 
-export type ProjectFormInputs = z.infer<typeof projectSchema>;
-import type { User } from '../../api/users';
-import { fetchUsers } from '../../api/users';
-import { Select, Spin } from 'antd';
-import { useQuery } from '@tanstack/react-query';
+type ProjectFormValues = z.infer<typeof projectSchema>;
+
+export type ProjectFormInputs = ProjectFormValues;
 
 interface ProjectFormProps {
   initialValues?: Partial<ProjectFormInputs>;
@@ -36,68 +32,105 @@ interface ProjectFormProps {
 }
 
 const ProjectForm: React.FC<ProjectFormProps> = ({ initialValues, onSubmit, loading, error, ownerUser }) => {
-  const { data: users = [], isLoading: usersLoading } = useQuery<User[]>({
+  const { data: users = [] } = useQuery<User[]>({
     queryKey: ['users'],
     queryFn: fetchUsers
   });
 
-  // Check if there's only one user
   const isSingleUser = users.length === 1;
-
-  // Get the single user's ID as a string if only one user exists
   const singleUserId = isSingleUser ? String(users[0].id) : '';
 
-  // Convert any value to string for the form
-  // const toFormValue = (value: unknown): string => {
-  //   if (value === undefined || value === null) return '';
-  //   return String(value);
-  // };
-
-  // Convert form value to the expected type for submission
-  const toSubmitValue = (value: unknown): string => {
-    if (value === undefined || value === null) return '';
-    return String(value);
-  };
-
-  // Handle form submission with proper type safety
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<ProjectFormInputs>({
+  const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
       name: '',
       description: '',
-      ownerId: '',
-      ...initialValues
-    },
+      owner: { id: '' }
+    }
   });
 
-  // Handle form submission
-  const handleFormSubmit = (data: Record<string, any>) => {
-    const formData = data as ProjectFormInputs;
-    // Ensure ownerId is properly handled before submission
-    const ownerId = toSubmitValue(formData.ownerId || (isSingleUser ? singleUserId : ''));
+  const { control, handleSubmit, formState: { errors }, reset, getValues } = form;
+
+  // Debug log initial props
+  console.log('ProjectForm render - initialValues:', initialValues);
+  console.log('ProjectForm render - ownerUser:', ownerUser);
+
+  // Update form when initialValues changes
+  useEffect(() => {
+    console.log('useEffect - initialValues changed:', initialValues);
+    if (initialValues) {
+      const values = {
+        name: initialValues.name,
+        description: initialValues.description || '',
+        owner: { id: String(initialValues.owner?.id || '') }
+      };
+      console.log('Setting form values:', values);
+      reset(values);
+      console.log('Form values after reset:', getValues());
+    } else if (isSingleUser && singleUserId) {
+      reset({
+        name: '',
+        description: '',
+        owner: { id: singleUserId }
+      });
+    } else if (ownerUser) {
+      reset({
+        name: '',
+        description: '',
+        owner: { id: String(ownerUser.id) }
+      });
+    } else {
+      reset({
+        name: '',
+        description: '',
+        owner: { id: '' }
+      });
+    }
+  }, [initialValues, isSingleUser, singleUserId, ownerUser, reset]);
+
+  const userOptions = useMemo(() => {
+    // Create a map to ensure unique users by ID
+    const userMap = new Map<string, { value: string; label: string }>();
+
+    // Add users from the users list
+    users.forEach(user => {
+      userMap.set(String(user.id), {
+        value: String(user.id),
+        label: `${user.username || 'Unknown'} (${user.email || 'No email'})`
+      });
+    });
+
+    // Add the ownerUser if provided and not already in the map
+    if (ownerUser) {
+      const ownerId = String(ownerUser.id);
+      if (!userMap.has(ownerId)) {
+        userMap.set(ownerId, {
+          value: ownerId,
+          label: `${ownerUser.username || 'Unknown'} (${ownerUser.email || 'No email'})`
+        });
+      }
+    }
+
+    // Convert the map values to an array
+    return Array.from(userMap.values());
+  }, [users, ownerUser]);
+
+  const handleFormSubmit = useCallback((data: ProjectFormValues) => {
+    const ownerId = data.owner?.id || (isSingleUser ? singleUserId : '');
     if (!ownerId) {
       console.error('No owner selected');
       return;
     }
 
-    // Create form data with properly typed values
     const submitData: ProjectFormInputs = {
-      ...formData,
-      ownerId: ownerId,
+      ...data,
+      owner: { 
+        id: String(ownerId)
+      },
     };
 
     onSubmit(submitData);
-  };
-
-  React.useEffect(() => {
-    // Fix: Only reset to known fields (ownerId, not owner)
-    reset(initialValues || { name: '', description: '', ownerId: '' });
-  }, [initialValues, reset]);
+  }, [isSingleUser, singleUserId, onSubmit]);
 
   return (
     <Form layout="vertical" onFinish={handleSubmit((data) => handleFormSubmit(data))}>
@@ -120,51 +153,38 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ initialValues, onSubmit, load
         <Controller
           name="description"
           control={control}
-          render={({ field }) => <Input {...field} />}
+          render={({ field }) => <Input.TextArea {...field} rows={4} />}
         />
       </Form.Item>
       <Form.Item
         label="Owner"
-        validateStatus={errors.ownerId ? 'error' : ''}
-        help={errors.ownerId?.message}
+        validateStatus={errors.owner?.id ? 'error' : ''}
+        help={errors.owner?.id?.message}
       >
         <Controller
-          name="ownerId"
+          name="owner"
           control={control}
           render={({ field }) => {
-            const value = field.value !== undefined && field.value !== null ? String(field.value) : undefined;
-
-            return usersLoading ? <Spin /> : (
+            // Get the current owner ID from the field value
+            const ownerId = field.value?.id ? String(field.value.id) : '';
+            
+            return (
               <Select
-                value={isSingleUser ? singleUserId : String(field.value || '')}
-                onChange={(value) => {
-                  field.onChange(String(value)); // ✅ Ensure string
+                value={ownerId}
+                onChange={(newValue) => {
+                  // Update the form value with the new owner ID
+                  field.onChange({ id: newValue });
                 }}
                 showSearch
                 placeholder="Select owner"
-                optionFilterProp="children"
-                disabled={isSingleUser}
+                optionFilterProp="label"
                 filterOption={(input, option) =>
-                  (option?.label as string).toLowerCase().includes(input.toLowerCase())
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
                 }
-                options={(() => {
-                  const options = users?.map(user => ({
-                    value: String(user.id), // ✅ stringified here
-                    label: `${user.username || 'Unknown'} (${user.email || 'No email'})`
-                  })) || [];
-
-                  if (ownerUser) {
-                    const ownerExists = options.some(opt => opt.value === String(ownerUser.id));
-                    if (!ownerExists) {
-                      options.unshift({
-                        value: String(ownerUser.id),
-                        label: `${ownerUser.username || 'Unknown'} ${ownerUser.email ? `(${ownerUser.email})` : ''}`
-                      });
-                    }
-                  }
-                  return options;
-                })()}
-              />    
+                options={userOptions}
+                disabled={isSingleUser}
+                style={{ width: '100%' }}
+              />
             );
           }}
         />

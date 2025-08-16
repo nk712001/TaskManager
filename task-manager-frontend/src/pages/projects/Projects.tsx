@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
-import { Table, Button, Space, Typography, Spin, Alert, Modal, Form, message, Popconfirm } from 'antd';
+import { Button, Table, Typography, Space, Modal, message, Form, Spin, Popconfirm, Alert } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import ProjectForm from '../../components/projects/ProjectForm';
 import type { ProjectFormInputs } from '../../components/projects/ProjectForm';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PlusOutlined } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
 import { fetchProjects, createProject, updateProject, deleteProject } from '../../api/projects';
 import type { Project } from '../../api/projects';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const { Title } = Typography;
-
 
 const Projects: React.FC = () => {
   const { user } = useAuth();
@@ -23,17 +22,19 @@ const Projects: React.FC = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
-  const { data: projects, isLoading, isError } = useQuery<Project[]>({ queryKey: ['projects'], queryFn: fetchProjects });
+  const { data: projects = [], isLoading, isError } = useQuery<Project[]>({
+    queryKey: ['projects'],
+    queryFn: fetchProjects as () => Promise<Project[]>,
+    refetchOnWindowFocus: false,
+  });
 
 
   const createMutation = useMutation({
     mutationFn: (values: ProjectFormInputs) => {
-      // Ensure ownerId is properly converted to a number
-      const ownerId = typeof values.ownerId === 'string' ? parseInt(values.ownerId, 10) : values.ownerId;
       return createProject({
         name: values.name,
         description: values.description,
-        owner: { id: ownerId },
+        owner: { id: Number(values.owner.id) },
         tasks: []
       });
     },
@@ -53,12 +54,12 @@ const Projects: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, ...values }: { id: string } & { name: string; description: string; owner: { id: number }; tasks: any[] }) => {
-      // Ensure owner ID is properly handled
-      const ownerId = typeof values.owner?.id === 'string' ? parseInt(values.owner.id, 10) : values.owner?.id;
+    mutationFn: ({ id, ...values }: { id: string } & ProjectFormInputs) => {
       return updateProject(id, {
-        ...values,
-        owner: { id: ownerId }
+        name: values.name,
+        description: values.description,
+        owner: { id: Number(values.owner.id) },
+        tasks: [] // Initialize with empty array or handle tasks separately if needed
       });
     },
     onSuccess: () => {
@@ -92,18 +93,11 @@ const Projects: React.FC = () => {
     form.resetFields();
   };
 
-  const handleEdit = async (project: Project) => {
-    const ownerId = project.owner?.id || project.ownerId;
-    const initialValues = {
-      name: project.name,
-      description: project.description,
-      // Ensure ownerId is a string for the form
-      ownerId: ownerId ? String(ownerId) : 
-              project.ownerId ? String(project.ownerId) : '',
-    };
+  const handleEdit = (project: Project) => {
+    console.log('Editing project:', project);
     setEditingProject(project);
     setModalVisible(true);
-    form.setFieldsValue(initialValues);
+    // Don't set form values here - let the ProjectForm component handle it through initialValues
   };
 
   const handleView = (id: string) => {
@@ -141,7 +135,7 @@ const Projects: React.FC = () => {
     {
       title: 'Actions',
       key: 'actions',
-      render: (_, record) => (
+      render: (_: unknown, record: Project) => (
         <Space>
           <Button type="link" onClick={() => handleView(record.id)}>View</Button>
           {isAdmin && (
@@ -177,52 +171,64 @@ const Projects: React.FC = () => {
            pagination={{ pageSize: 8 }}
          />
       )}
-      <Modal
-        title={editingProject ? 'Edit Project' : 'New Project'}
-        open={modalVisible}
-        onCancel={() => { setModalVisible(false); setEditingProject(null); }}
-        destroyOnClose
-        footer={null}
-      >
-        <ProjectForm
-          initialValues={editingProject || undefined}
-          loading={createMutation.isPending || updateMutation.isPending}
-          error={createMutation.isError ? 'Failed to create project' : updateMutation.isError ? 'Failed to update project' : undefined}
-          
-          onSubmit={async (values: ProjectFormInputs) => {
-            try {
-              if (editingProject) {
-                // For update, use the updateProject API directly
-                // Convert string ID to number for the backend
-                await updateProject(String(editingProject.id), {
-                  name: values.name,
-                  description: values.description,
-                  owner: { id: Number(values.ownerId) },
-                  // Don't include tasks in the update
-                  tasks: undefined
-                });
-                message.success('Project updated successfully');
-                queryClient.invalidateQueries({ queryKey: ['projects'] });
-                setModalVisible(false);
-                setEditingProject(null);
-              } else {
-                // For create, use the createProject API directly
-                await createProject({
-                  name: values.name,
-                  description: values.description,
-                  owner: { id: Number(values.ownerId) }
-                });
-                message.success('Project created successfully');
-                queryClient.invalidateQueries({ queryKey: ['projects'] });
-                setModalVisible(false);
-              }
-            } catch (error) {
-              console.error('Error saving project:', error);
-              message.error('Failed to save project');
-            }
-          }}
-        />
-      </Modal>
+      {modalVisible && (
+        <Modal
+          title={editingProject ? 'Edit Project' : 'New Project'}
+          open={true}
+          onCancel={() => { setModalVisible(false); setEditingProject(null); }}
+          destroyOnClose
+          footer={null}
+        >
+          {editingProject ? (
+            <ProjectForm
+              key={`edit-${editingProject.id}`}
+              initialValues={{
+                name: editingProject.name,
+                description: editingProject.description || '',
+                owner: { id: String(editingProject.owner?.id || editingProject.ownerId || '') }
+              }}
+              ownerUser={{
+                id: String(editingProject.owner?.id || editingProject.ownerId || ''),
+                username: editingProject.ownerName || 'Unknown',
+                email: editingProject.owner?.email || editingProject.ownerName || ''
+              }}
+              loading={updateMutation.isPending}
+              error={updateMutation.isError ? 'Failed to update project' : undefined}
+              onSubmit={async (values: ProjectFormInputs) => {
+                try {
+                  await updateMutation.mutateAsync({
+                    id: String(editingProject.id),
+                    name: values.name,
+                    description: values.description,
+                    owner: { id: values.owner.id }
+                  });
+                  setModalVisible(false);
+                  setEditingProject(null);
+                } catch (error) {
+                  console.error('Error updating project:', error);
+                }
+              }}
+            />
+          ) : (
+            <ProjectForm
+              key="create"
+              loading={createMutation.isPending}
+              error={createMutation.isError ? 'Failed to create project' : undefined}
+              onSubmit={async (values: ProjectFormInputs) => {
+                try {
+                  await createMutation.mutateAsync({
+                    ...values,
+                    owner: { id: values.owner.id }
+                  });
+                  setModalVisible(false);
+                } catch (error) {
+                  console.error('Error creating project:', error);
+                }
+              }}
+            />
+          )}
+        </Modal>
+      )}
     </div>
   );
 };
