@@ -54,8 +54,8 @@ public class ProjectService {
                         project.setOwner(updatedProject.getOwner());
                     }
                     
-                    // The tasks collection is now managed by the entity itself
-                    // We don't need to manually handle it here
+                    // The tasks collection is managed by the entity itself
+                    // We don't need to manually update it here as it's managed through the Task entity
                     
                     Project savedProject = projectRepository.save(project);
                     System.out.println("ProjectService: Successfully updated project ID: " + savedProject.getId());
