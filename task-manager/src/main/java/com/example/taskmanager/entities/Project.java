@@ -10,7 +10,7 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 public class Project {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,13 +32,26 @@ public class Project {
     
     // Helper methods for bidirectional relationship
     public void addTask(Task task) {
-        tasks.add(task);
-        task.setProject(this);
+        if (task != null) {
+            tasks.add(task);
+            task.setProject(this);
+        }
     }
     
     public void removeTask(Task task) {
-        tasks.remove(task);
-        task.setProject(null);
+        if (task != null) {
+            tasks.remove(task);
+            task.setProject(null);
+        }
+    }
+    
+    // Ensure tasks collection is never null
+    @PostLoad
+    @PostPersist
+    private void initialize() {
+        if (tasks == null) {
+            tasks = new HashSet<>();
+        }
     }
 
     @Temporal(TemporalType.TIMESTAMP)

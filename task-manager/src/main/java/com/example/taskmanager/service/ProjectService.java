@@ -1,4 +1,4 @@
-package com.example.taskmanager.service;
+    package com.example.taskmanager.service;
 
 import com.example.taskmanager.entities.Project;
 import com.example.taskmanager.repository.ProjectRepository;
@@ -6,8 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+
+import com.example.taskmanager.entities.Task;
 
 @Service
 public class ProjectService {
@@ -40,7 +44,10 @@ public class ProjectService {
                         "Current Name: " + project.getName() + 
                         ", Current Owner ID: " + (project.getOwner() != null ? project.getOwner().getId() : "null"));
                     
-                    // Only update the fields we want to allow updating
+                    // Create a defensive copy of the existing tasks
+                    Set<Task> existingTasks = new HashSet<>(project.getTasks());
+                    
+                    // Update basic fields
                     project.setName(updatedProject.getName());
                     project.setDescription(updatedProject.getDescription());
                     
@@ -50,8 +57,10 @@ public class ProjectService {
                         project.setOwner(updatedProject.getOwner());
                     }
                     
-                    // Note: We don't update tasks here to avoid Hibernate issues
-                    // Tasks should be managed through dedicated endpoints
+                    // Explicitly set the tasks collection to the existing tasks
+                    // This prevents Hibernate from trying to replace the collection
+                    project.getTasks().clear();
+                    project.getTasks().addAll(existingTasks);
                     
                     Project savedProject = projectRepository.save(project);
                     System.out.println("ProjectService: Successfully updated project ID: " + savedProject.getId());
