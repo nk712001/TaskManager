@@ -59,9 +59,19 @@ public class ProjectController {
     @PutMapping("/{id}")
     public ResponseEntity<ProjectDTO> updateProject(@PathVariable Long id, @RequestBody Project project) {
         try {
+            System.out.println("ProjectController: Received update request for project ID: " + id);
+            System.out.println("ProjectController: Update data - " + 
+                "Name: " + project.getName() + 
+                ", Description: " + project.getDescription() + 
+                ", Owner ID: " + (project.getOwner() != null ? project.getOwner().getId() : "null"));
+                
             Project updated = projectService.updateProject(id, project);
+            
+            System.out.println("ProjectController: Successfully updated project ID: " + id);
             return ResponseEntity.ok(EntityToDTOMapper.toProjectDTO(updated));
         } catch (RuntimeException e) {
+            System.err.println("ProjectController: Error updating project ID: " + id + ". Error: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.notFound().build();
         }
     }
