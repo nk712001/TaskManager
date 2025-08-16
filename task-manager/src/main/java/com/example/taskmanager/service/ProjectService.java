@@ -38,33 +38,27 @@ public class ProjectService {
     public Project updateProject(Long id, Project updatedProject) {
         System.out.println("ProjectService: Starting update for project ID: " + id);
         
-        return projectRepository.findById(id)
-                .map(project -> {
-                    System.out.println("ProjectService: Found existing project - " + 
-                        "Current Name: " + project.getName() + 
-                        ", Current Owner ID: " + (project.getOwner() != null ? project.getOwner().getId() : "null"));
-                    
-                    // Update basic fields
-                    project.setName(updatedProject.getName());
-                    project.setDescription(updatedProject.getDescription());
-                    
-                    // Only update owner if it's provided in the updated project
-                    if (updatedProject.getOwner() != null) {
-                        System.out.println("ProjectService: Updating owner to ID: " + updatedProject.getOwner().getId());
-                        project.setOwner(updatedProject.getOwner());
-                    }
-                    
-                    // Don't update tasks collection here - manage tasks through TaskService
-                    // This prevents Hibernate collection reference issues
-                    
-                    Project savedProject = projectRepository.save(project);
-                    System.out.println("ProjectService: Successfully updated project ID: " + savedProject.getId());
-                    return savedProject;
-                })
-                .orElseThrow(() -> {
-                    System.err.println("ProjectService: Project not found with ID: " + id);
-                    return new RuntimeException("Project not found with ID: " + id);
-                });
+        Project existingProject = projectRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Project not found with id: " + id));
+            
+        System.out.println("ProjectService: Found existing project - " + 
+            "Current Name: " + existingProject.getName() + 
+            ", Current Owner ID: " + (existingProject.getOwner() != null ? existingProject.getOwner().getId() : "null"));
+        
+        // Only update the fields we want to allow updating
+        existingProject.setName(updatedProject.getName());
+        existingProject.setDescription(updatedProject.getDescription());
+        
+        // Only update owner if it's provided in the updated project
+        if (updatedProject.getOwner() != null) {
+            System.out.println("ProjectService: Updating owner to ID: " + updatedProject.getOwner().getId());
+            existingProject.setOwner(updatedProject.getOwner());
+        }
+        
+        // Explicitly save the changes
+        Project savedProject = projectRepository.save(existingProject);
+        System.out.println("ProjectService: Successfully updated project ID: " + savedProject.getId());
+        return savedProject;
     }
 
     @Transactional

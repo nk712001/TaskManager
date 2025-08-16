@@ -12,7 +12,7 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder(toBuilder = true)
+@Builder
 public class Project implements Serializable {
     private static final long serialVersionUID = 1L;
     @Id
@@ -29,7 +29,7 @@ public class Project implements Serializable {
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    @OneToMany(mappedBy = "project", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
     @Builder.Default
     private Set<Task> tasks = new HashSet<>();
     
@@ -39,21 +39,6 @@ public class Project implements Serializable {
     private void init() {
         if (tasks == null) {
             tasks = new HashSet<>();
-        }
-    }
-    
-    // Helper methods for bidirectional relationship
-    public void addTask(Task task) {
-        if (task != null) {
-            tasks.add(task);
-            task.setProject(this);
-        }
-    }
-    
-    public void removeTask(Task task) {
-        if (task != null) {
-            tasks.remove(task);
-            task.setProject(null);
         }
     }
 
