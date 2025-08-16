@@ -35,35 +35,26 @@ public class ProjectService {
     @Transactional
     public Project updateProject(Long id, Project updatedProject) {
         System.out.println("ProjectService: Starting update for project ID: " + id);
-        
+
         // Load the existing project with its tasks
         Project existingProject = projectRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Project not found with id: " + id));
-            
-        System.out.println("ProjectService: Found existing project - " + 
-            "Current Name: " + existingProject.getName() + 
-            ", Current Owner ID: " + (existingProject.getOwner() != null ? existingProject.getOwner().getId() : "null") +
-            ", Task Count: " + (existingProject.getTasks() != null ? existingProject.getTasks().size() : 0));
-        
-        // Only update the fields we want to allow updating
-        existingProject.setName(updatedProject.getName());
-        existingProject.setDescription(updatedProject.getDescription());
-        
-        // Only update owner if it's provided in the updated project
-        if (updatedProject.getOwner() != null) {
-            System.out.println("ProjectService: Updating owner to ID: " + updatedProject.getOwner().getId());
-            existingProject.setOwner(updatedProject.getOwner());
+                .orElseThrow(() -> new RuntimeException("Project not found with id: " + id));
+
+        System.out.println("ProjectService: Found existing project - " +
+                "Current Name: " + existingProject.getName() +
+                ", Current Owner ID: "
+                + (existingProject.getOwner() != null ? existingProject.getOwner().getId() : "null") +
+                ", Task Count: " + (existingProject.getTasks() != null ? existingProject.getTasks().size() : 0));
+
+        if (updatedProject.getTasks() != null) {
+            existingProject.getTasks().clear();
+            existingProject.getTasks().addAll(updatedProject.getTasks());
         }
-        
-        // Ensure tasks collection is initialized and not null
-        if (existingProject.getTasks() == null) {
-            existingProject.setTasks(new HashSet<>());
-        }
-        
+
         // Save and return the updated project
         Project savedProject = projectRepository.save(existingProject);
         System.out.println("ProjectService: Successfully updated project ID: " + savedProject.getId() +
-            ", Task Count After Update: " + (savedProject.getTasks() != null ? savedProject.getTasks().size() : 0));
+                ", Task Count After Update: " + (savedProject.getTasks() != null ? savedProject.getTasks().size() : 0));
         return savedProject;
     }
 
