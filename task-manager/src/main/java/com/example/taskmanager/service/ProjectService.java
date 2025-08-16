@@ -44,6 +44,9 @@ public class ProjectService {
                         "Current Name: " + project.getName() + 
                         ", Current Owner ID: " + (project.getOwner() != null ? project.getOwner().getId() : "null"));
                     
+                    // Create a defensive copy of the existing tasks
+                    Set<Task> existingTasks = new HashSet<>(project.getTasks());
+                    
                     // Update basic fields
                     project.setName(updatedProject.getName());
                     project.setDescription(updatedProject.getDescription());
@@ -54,8 +57,11 @@ public class ProjectService {
                         project.setOwner(updatedProject.getOwner());
                     }
                     
-                    // The tasks collection is managed by the entity itself
-                    // We don't need to manually update it here as it's managed through the Task entity
+                    // Clear and re-add tasks to maintain the collection reference
+                    project.getTasks().clear();
+                    if (updatedProject.getTasks() != null) {
+                        updatedProject.getTasks().forEach(project::addTask);
+                    }
                     
                     Project savedProject = projectRepository.save(project);
                     System.out.println("ProjectService: Successfully updated project ID: " + savedProject.getId());

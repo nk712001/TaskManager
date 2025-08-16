@@ -29,7 +29,7 @@ public class Project implements Serializable {
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    @OneToMany(mappedBy = "project", cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH}, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private Set<Task> tasks = new HashSet<>();
     
@@ -42,8 +42,22 @@ public class Project implements Serializable {
     }
     
     public void removeTask(Task task) {
-        if (task != null && this.tasks.remove(task)) {
+        if (task != null) {
             task.setProject(null);
+            this.tasks.remove(task);
+        }
+    }
+    
+    // This is important to prevent Hibernate from replacing the collection
+    public void setTasks(Set<Task> tasks) {
+        if (this.tasks == null) {
+            this.tasks = tasks;
+        } else if (this.tasks != tasks) { // not the same instance
+            this.tasks.clear();
+            if (tasks != null) {
+                this.tasks.addAll(tasks);
+                tasks.forEach(task -> task.setProject(this));
+            }
         }
     }
 
