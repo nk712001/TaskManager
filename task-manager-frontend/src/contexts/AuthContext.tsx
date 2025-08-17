@@ -5,7 +5,8 @@ import { parseJwt } from '../utils/jwt';
 
 // Types for Auth State and Context
 export interface AuthUser {
-  id: string;
+  id: string;          // Email (for backward compatibility)
+  userId?: number;     // Numeric user ID from backend
   email: string;
   name: string;
   role: 'admin' | 'user';
@@ -117,16 +118,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.log('Calling parseJwt...');
       const payload = parseJwt(token);
       console.log('parseJwt returned:', payload);
+      
       if (!payload) {
-        console.error('parseJwt returned null or undefined. Token may be malformed or not a JWT.');
+        throw new Error('Failed to parse JWT token');
       }
-      console.log('Decoded JWT payload:', payload);
+      
+      // Extract user ID from the token claims
+      const userId = payload.userId;
+      if (!userId) {
+        console.warn('No user ID found in JWT token, falling back to 1');
+      }
       const userObj: AuthUser = {
         id: payload?.sub || 'unknown',
+        userId: userId || 1, // Use the numeric user ID from the token, fallback to 1 if not available
         email: payload?.email || username,
         name: payload?.name || payload?.username || username.split('@')[0],
-        role: payload?.role || 'user',
+        role: (payload?.roles?.includes('ROLE_ADMIN') ? 'admin' : 'user') as 'admin' | 'user',
       };
+      
+      console.log('Created user object with ID:', userObj.userId, 'and email:', userObj.email);
       console.log('AuthUser object constructed:', userObj);
       
       const tokensObj: AuthTokens = { 

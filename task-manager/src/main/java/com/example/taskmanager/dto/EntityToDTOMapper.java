@@ -25,7 +25,21 @@ public class EntityToDTOMapper {
 
     public static TaskDTO toTaskDTO(Task task) {
         if (task == null) return null;
+        
         Long projectId = task.getProject() != null ? task.getProject().getId() : null;
-        return new TaskDTO(task.getId(), task.getTitle(), task.getDescription(), task.getStatus() != null ? task.getStatus().name() : null, projectId);
+        Long creatorId = task.getCreator() != null ? task.getCreator().getId() : null;
+        Long assigneeId = task.getAssignee() != null ? task.getAssignee().getId() : null;
+        
+        return new TaskDTO(
+            task.getId(), 
+            task.getTitle(), 
+            task.getDescription(), 
+            task.getStatus() != null ? task.getStatus().name() : null,
+            task.getPriority() != null ? task.getPriority().name() : null,
+            task.getDueDate(),
+            creatorId,
+            assigneeId,
+            projectId
+        );
     }
 }

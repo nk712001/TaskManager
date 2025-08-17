@@ -12,6 +12,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import com.example.taskmanager.security.JwtUtil;
 import com.example.taskmanager.security.CustomUserDetailsService;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -42,17 +43,45 @@ public class AuthController {
         logger.info("DEBUG: LOGIN CONTROLLER REACHED for username: {}", user.getUsername());
         logger.info("DEBUG: Attempting login for username: {}", user.getUsername());
         try {
+            // Authenticate user
             Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword())
             );
-            org.springframework.security.core.userdetails.User principal = (org.springframework.security.core.userdetails.User) authentication.getPrincipal();
-            java.util.List<String> roles = principal.getAuthorities().stream().map(org.springframework.security.core.GrantedAuthority::getAuthority).toList();
+            
+            // Get the principal (user details)
+            org.springframework.security.core.userdetails.User principal = 
+                (org.springframework.security.core.userdetails.User) authentication.getPrincipal();
+            
+            // Get user roles
+            java.util.List<String> roles = principal.getAuthorities().stream()
+                .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .collect(java.util.stream.Collectors.toList());
+                
+            // Get the full user details to get the numeric ID
+            Optional<com.example.taskmanager.entities.User> userOpt = 
+                userService.getUserByUsername(user.getUsername());
+                
+            if (!userOpt.isPresent()) {
+                logger.error("User not found after successful authentication: {}", user.getUsername());
+                return ResponseEntity.status(500).body("User data not found");
+            }
+            
+            com.example.taskmanager.entities.User fullUser = userOpt.get();
+            
             logger.info("DEBUG: User roles on login: {}", roles);
-            String jwt = jwtUtil.generateToken(principal.getUsername(), roles);
-            logger.info("DEBUG: JWT issued: {}", jwt);
+            
+            // Generate token with username, user ID, and roles
+            String jwt = jwtUtil.generateToken(
+                principal.getUsername(), 
+                fullUser.getId(), 
+                roles
+            );
+            
+            logger.info("DEBUG: JWT issued for user ID: {}", fullUser.getId());
             return ResponseEntity.ok(jwt);
+            
         } catch (Exception e) {
-            logger.error("DEBUG: Login failed for username: {} - {}", user.getUsername(), e.getMessage());
+            logger.error("DEBUG: Login failed for username: {} - {}", user.getUsername(), e.getMessage(), e);
             return ResponseEntity.status(401).body("Invalid username or password");
         }
     }

@@ -63,6 +63,26 @@ These files enable local development parity with production, support hot reloadi
   - Modal forms are controlled by local state and reset after each operation.
 - **UI/UX**: Consistent Ant Design look and feel, with loading and error states for all actions.
 
+#### Project Details View
+- **Location**: `src/pages/projects/ProjectDetails.tsx`
+- **Purpose**: Displays detailed information about a specific project, including its tasks and metadata.
+- **Features**:
+  - Fetches and displays project details using React Query's `useQuery` with the `fetchProjectById` API function.
+  - Shows project information in a clean, organized layout using Ant Design's `Descriptions` component.
+  - Implements responsive design that works well on both desktop and mobile devices.
+  - Includes loading states, error boundaries, and user-friendly error messages.
+  - Displays related tasks with their status indicators.
+- **Data Flow**:
+  - On mount, triggers a query to fetch project data by ID from the URL parameters.
+  - Uses React Query's caching to avoid unnecessary refetches.
+  - Handles loading and error states gracefully with appropriate UI feedback.
+- **UI/UX**:
+  - Clean, card-based layout with clear section separation.
+  - Back button for easy navigation to the projects list.
+  - Relative timestamps using `dayjs` for better readability.
+  - Responsive design that adapts to different screen sizes.
+  - Consistent styling with the rest of the application using Ant Design components.
+
 ---
 
 ### Layout Components

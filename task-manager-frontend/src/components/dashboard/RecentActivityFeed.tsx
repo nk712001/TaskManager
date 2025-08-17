@@ -82,20 +82,18 @@ const RecentActivityFeed: React.FC<RecentActivityFeedProps> = ({
 
   return (
     <div>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: 16 
-      }}>
-        <Typography.Title level={5} style={{ margin: 0 }}>Recent Activity</Typography.Title>
-        {isRefreshing && (
+      {isRefreshing && (
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'flex-end',
+          marginBottom: 8 
+        }}>
           <Space>
             <SyncOutlined spin style={{ color: '#1890ff' }} />
             <Typography.Text type="secondary">Updating...</Typography.Text>
           </Space>
-        )}
-      </div>
+        </div>
+      )}
       
       <List
         itemLayout="horizontal"

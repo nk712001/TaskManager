@@ -1,7 +1,11 @@
 package com.example.taskmanager.service;
 
 import com.example.taskmanager.entities.Task;
+import com.example.taskmanager.entities.User;
+import com.example.taskmanager.entities.Project;
 import com.example.taskmanager.repository.TaskRepository;
+import com.example.taskmanager.repository.UserRepository;
+import com.example.taskmanager.repository.ProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -16,6 +20,12 @@ import static org.mockito.Mockito.*;
 class TaskServiceTest {
     @Mock
     private TaskRepository taskRepository;
+    
+    @Mock
+    private UserRepository userRepository;
+    
+    @Mock
+    private ProjectRepository projectRepository;
 
     @InjectMocks
     private TaskService taskService;
@@ -46,23 +56,58 @@ class TaskServiceTest {
 
     @Test
     void testCreateTask() {
+        // Given
         Task task = new Task();
+        task.setTitle("Test Task");
+        
+        User creator = new User();
+        creator.setId(1L);
+        
+        Project project = new Project();
+        project.setId(1L);
+        
+        when(userRepository.findById(1L)).thenReturn(Optional.of(creator));
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(taskRepository.save(task)).thenReturn(task);
-        Task created = taskService.createTask(task);
+        
+        // When
+        Task created = taskService.createTask(task, 1L, 1L, 2L);
+        
+        // Then
         assertNotNull(created);
+        assertEquals("Test Task", created.getTitle());
+        assertEquals(creator, created.getCreator());
+        assertEquals(project, created.getProject());
     }
 
     @Test
     void testUpdateTask() {
-        Task task = new Task();
-        task.setId(1L);
-        task.setTitle("old");
-        Task updated = new Task();
-        updated.setTitle("new");
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
-        when(taskRepository.save(any(Task.class))).thenReturn(task);
-        Task result = taskService.updateTask(1L, updated);
+        // Given
+        Task existingTask = new Task();
+        existingTask.setId(1L);
+        existingTask.setTitle("old");
+        
+        Task updatedTask = new Task();
+        updatedTask.setTitle("new");
+        
+        User assignee = new User();
+        assignee.setId(2L);
+        
+        Project project = new Project();
+        project.setId(1L);
+        
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(existingTask));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(assignee));
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(taskRepository.save(any(Task.class))).thenReturn(existingTask);
+        
+        // When
+        Task result = taskService.updateTask(1L, updatedTask, 1L, 2L);
+        
+        // Then
         assertEquals("new", result.getTitle());
+        assertEquals(assignee, result.getAssignee());
+        assertEquals(project, result.getProject());
     }
 
     @Test

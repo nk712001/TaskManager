@@ -1,28 +1,22 @@
 package com.example.taskmanager.controller;
 
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.RequestBody; 
-import com.example.taskmanager.service.ProjectService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import com.example.taskmanager.dto.ProjectDTO;
+import com.example.taskmanager.dto.TaskDTO;
 import com.example.taskmanager.dto.EntityToDTOMapper;
 import com.example.taskmanager.entities.Project;
 import com.example.taskmanager.entities.Task;
 import com.example.taskmanager.entities.User;
-import com.example.taskmanager.dto.TaskDTO;
+import com.example.taskmanager.service.ProjectService;
 import com.example.taskmanager.service.TaskService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/projects")
@@ -66,7 +60,7 @@ public class ProjectController {
         try {
             System.out.println("ProjectController: Received update request for project ID: " + id);
             System.out.println("ProjectController: Update data: " + updates);
-            
+
             // Convert string ID to Long
             Long projectId;
             try {
@@ -75,11 +69,11 @@ public class ProjectController {
                 System.err.println("ProjectController: Invalid project ID format: " + id);
                 return ResponseEntity.badRequest().build();
             }
-            
+
             // Get the existing project
             Project existingProject = projectService.getProjectById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project not found with id: " + projectId));
-            
+                    .orElseThrow(() -> new RuntimeException("Project not found with id: " + projectId));
+
             // Update only the fields that are present in the request
             if (updates.containsKey("name")) {
                 existingProject.setName((String) updates.get("name"));
@@ -96,13 +90,13 @@ public class ProjectController {
                     existingProject.setOwner(owner);
                 }
             }
-            
+
             // Save the updated project
             Project updated = projectService.updateProject(projectId, existingProject);
-            
+
             System.out.println("ProjectController: Successfully updated project ID: " + projectId);
             return ResponseEntity.ok(EntityToDTOMapper.toProjectDTO(updated));
-            
+
         } catch (NumberFormatException e) {
             System.err.println("ProjectController: Number format exception: " + e.getMessage());
             return ResponseEntity.badRequest().build();
@@ -134,18 +128,51 @@ public class ProjectController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{projectId}/tasks")
-    public ResponseEntity<TaskDTO> createTaskForProject(@PathVariable Long projectId, @RequestBody @jakarta.validation.Valid TaskDTO taskDTO) {
-        Optional<Project> projectOpt = projectService.getProjectById(projectId);
-        if (projectOpt.isEmpty()) {
+    public ResponseEntity<TaskDTO> createTaskForProject(
+            @PathVariable Long projectId,
+            @RequestBody @jakarta.validation.Valid TaskDTO taskDTO) {
+
+        // Validate project exists
+        if (!projectService.getProjectById(projectId).isPresent()) {
             return ResponseEntity.notFound().build();
         }
-        Project project = projectOpt.get();
-        Task task = new Task();
-        task.setTitle(taskDTO.getTitle());
-        task.setDescription(taskDTO.getDescription());
-        task.setStatus(Task.Status.valueOf(taskDTO.getStatus() != null ? taskDTO.getStatus() : "PENDING"));
-        task.setProject(project);
-        Task created = taskService.createTask(task);
-        return ResponseEntity.ok(EntityToDTOMapper.toTaskDTO(created));
+
+        // Validate required fields
+        if (taskDTO.getCreatorId() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            // Create task entity from DTO
+            Task task = new Task();
+            task.setTitle(taskDTO.getTitle());
+            task.setDescription(taskDTO.getDescription());
+
+            // Set status with default
+            String status = taskDTO.getStatus() != null ? taskDTO.getStatus() : "PENDING";
+            task.setStatus(Task.Status.valueOf(status));
+
+            // Set priority if provided
+            if (taskDTO.getPriority() != null) {
+                task.setPriority(Task.Priority.valueOf(taskDTO.getPriority()));
+            }
+
+            task.setDueDate(taskDTO.getDueDate());
+
+            // Create task via service
+            Task created = taskService.createTask(
+                    task,
+                    projectId,
+                    taskDTO.getCreatorId(),
+                    taskDTO.getAssigneeId());
+
+            return ResponseEntity.ok(EntityToDTOMapper.toTaskDTO(created));
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+
     }
 }

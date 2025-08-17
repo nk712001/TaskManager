@@ -12,6 +12,10 @@ const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
 const Projects = lazy(() => import('./pages/projects/Projects'));
 const ProjectDetails = lazy(() => import('./pages/projects/ProjectDetails'));
 
+// Lazy load task components
+const TaskList = lazy(() => import('./pages/tasks/TaskList'));
+const TaskForm = lazy(() => import('./pages/tasks/TaskForm'));
+
 // Loading component for Suspense fallback
 const Loading = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -45,6 +49,9 @@ export default function AppRouter(): ReactNode {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:id" element={<ProjectDetails />} />
+            <Route path="/tasks" element={<TaskList />} />
+            <Route path="/tasks/new" element={<TaskForm />} />
+            <Route path="/tasks/:id/edit" element={<TaskForm isEdit />} />
           </Route>
 
           {/* Redirect all other routes to login */}

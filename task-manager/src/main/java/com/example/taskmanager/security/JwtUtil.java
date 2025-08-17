@@ -22,17 +22,24 @@ public class JwtUtil {
     }
 
 
-    // Overloaded method to include roles claim
-    public String generateToken(String username, java.util.List<String> roles) {
+    // Generate token with username, user ID, and roles
+    public String generateToken(String username, Long userId, java.util.List<String> roles) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
         return Jwts.builder()
                 .setSubject(username)
+                .claim("userId", userId)  // Add user ID to claims
+                .claim("username", username)  // Add username as a claim for easy access
                 .claim("roles", roles)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
+    }
+    
+    // Keep backward compatibility
+    public String generateToken(String username, java.util.List<String> roles) {
+        return generateToken(username, null, roles);
     }
 
     public String getUsernameFromToken(String token) {

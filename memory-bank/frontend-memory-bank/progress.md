@@ -91,7 +91,13 @@
   - Refactored `Projects.tsx` to use real API and React Query for all project operations.
   - Added Ant Design modal forms for create/edit, and confirmation for delete.
   - All mutation and type errors resolved; code validated and confirmed working by user.
-- [ ] Add project details view
+- [x] Add project details view
+  - Created `ProjectDetails.tsx` in `src/pages/projects/` to display detailed project information including name, description, owner, and creation date.
+  - Implemented responsive layout with Ant Design's `Descriptions` and `Card` components for clean data presentation.
+  - Added loading states, error handling, and a back button for better navigation.
+  - Integrated with the existing project API to fetch project data by ID.
+  - Added relative time display using `dayjs` for user-friendly timestamps.
+  - Ensured proper TypeScript typing and error boundaries for robust error handling.
 
 ## Phase 6: Task Management
 - [ ] Implement task listing with filters

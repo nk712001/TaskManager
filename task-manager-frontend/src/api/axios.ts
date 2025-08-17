@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 
 const api = axios.create({
-  baseURL: '/api', // Your API base URL
+  baseURL: '/api', // Base URL includes /api which will be proxied to the backend
   headers: {
     'Content-Type': 'application/json',
   },
