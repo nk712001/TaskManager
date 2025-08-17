@@ -132,7 +132,14 @@
   - Removed edit functionality to simplify the interface
   - Improved search to work with combined username/email field
   - Fixed validation to properly handle both usernames and email addresses
-- [ ] Add role management
+- [x] Add role management
+  - Updated User interface to include roles array with 'admin', 'manager', 'member' types
+  - Enhanced UserForm with a multi-select dropdown for role assignment
+  - Added role display in the users table with color-coded tags
+  - Implemented quick role change functionality with a dedicated button
+  - Added validation to ensure at least one role is selected
+  - Protected admin users from being deleted
+  - Improved user interface with better visual hierarchy and tooltips
 
 ## Phase 8: Testing
 - [ ] Set up unit testing

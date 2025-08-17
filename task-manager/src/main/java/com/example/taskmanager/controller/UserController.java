@@ -6,8 +6,10 @@ import com.example.taskmanager.service.UserService;
 import com.example.taskmanager.dto.EntityToDTOMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -42,10 +44,11 @@ public class UserController {
         return ResponseEntity.ok(EntityToDTOMapper.toUserDTO(created));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @RequestBody User user) {
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PatchMapping("/{id}")
+    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
         try {
-            User updated = userService.updateUser(id, user);
+            User updated = userService.partialUpdateUser(id, updates);
             return ResponseEntity.ok(EntityToDTOMapper.toUserDTO(updated));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

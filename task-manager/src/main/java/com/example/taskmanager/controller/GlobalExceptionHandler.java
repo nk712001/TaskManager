@@ -18,12 +18,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(JpaSystemException.class)
     public ResponseEntity<String> handleJpaSystemException(JpaSystemException ex) {
+        ex.printStackTrace();
         return ResponseEntity.badRequest().body("Failed to update project: " + ex.getMostSpecificCause().getMessage());
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleResourceNotFound(ResourceNotFoundException ex,
             WebRequest request) {
+        ex.printStackTrace();
         Map<String, Object> body = new HashMap<>();
         body.put("error", "Resource Not Found");
         body.put("message", ex.getMessage());
@@ -33,6 +35,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationException(MethodArgumentNotValidException ex) {
+        ex.printStackTrace();
         Map<String, Object> body = new HashMap<>();
         body.put("error", "Validation Failed");
         body.put("status", HttpStatus.BAD_REQUEST.value());
@@ -46,6 +49,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ResponseEntity<Map<String, Object>> handleAllOtherExceptions(Exception ex, WebRequest request) {
+        ex.printStackTrace();
         Map<String, Object> body = new HashMap<>();
         body.put("error", "Internal Server Error");
         body.put("message", ex.getMessage());

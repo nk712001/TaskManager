@@ -1,7 +1,17 @@
 import React from 'react';
-import { Form, Input, Button, message } from 'antd';
+import { Form, Input, Button, message, Select, Tag, Tooltip } from 'antd';
 import type { FormInstance } from 'antd';
+import { UserOutlined, UserAddOutlined } from '@ant-design/icons';
 import type { CreateUserData } from '../../api/users';
+
+const { Option } = Select;
+
+const ROLE_OPTIONS = [
+  { value: 'admin' as const, label: 'Admin', color: 'red', description: 'Full access to all features' },
+  { value: 'user' as const, label: 'Standard User', color: 'blue', description: 'Basic access with limited permissions' },
+];
+
+// Role display and selection components
 
 interface UserFormProps {
   form: FormInstance;
@@ -30,6 +40,7 @@ const UserForm: React.FC<UserFormProps> = ({
       layout="vertical"
       onFinish={onFinish}
       onFinishFailed={onFinishFailed}
+      initialValues={{ roles: ['user'] }}
     >
       <Form.Item
         name="username"
@@ -68,15 +79,90 @@ const UserForm: React.FC<UserFormProps> = ({
         <Input.Password placeholder="Enter password" />
       </Form.Item>
 
+      <Form.Item
+        name="roles"
+        label={
+          <span>
+            Roles 
+            <Tooltip title="Select at least one role for the user">
+              <span style={{ marginLeft: 8, color: '#8c8c8c' }}>
+                <i className="fas fa-info-circle" />
+              </span>
+            </Tooltip>
+          </span>
+        }
+        rules={[
+          { 
+            type: 'array',
+            required: true,
+            message: 'Please select at least one role',
+            validator: (_, value) => 
+              value && value.length > 0 ? Promise.resolve() : Promise.reject('At least one role is required')
+          },
+        ]}
+      >
+        <Select
+          mode="multiple"
+          showArrow
+          style={{ width: '100%' }}
+          placeholder="Select user roles"
+          optionLabelProp="label"
+          optionFilterProp="children"
+          filterOption={(input, option) => {
+            const label = option?.label?.toString() || '';
+            return label.toLowerCase().includes(input.toLowerCase());
+          }}
+          tagRender={(props) => {
+            const { label, value, closable, onClose } = props;
+            return (
+              <Tag 
+                color={ROLE_OPTIONS.find(opt => opt.value === value)?.color}
+                closable={closable}
+                onClose={onClose}
+                style={{ margin: '2px 4px' }}
+              >
+                {label}
+              </Tag>
+            );
+          }}
+        >
+          {ROLE_OPTIONS.map(role => (
+            <Option 
+              key={role.value} 
+              value={role.value} 
+              label={role.label}
+            >
+              <Tooltip title={role.description} placement="right">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ marginRight: 8 }}>
+                      {role.value === 'admin' ? <UserAddOutlined /> : <UserOutlined />}
+                    </span>
+                    {role.label}
+                  </div>
+                  <Tag color={role.color} style={{ marginLeft: 'auto' }}>
+                    {role.value.toUpperCase()}
+                  </Tag>
+                </div>
+              </Tooltip>
+            </Option>
+          ))}
+        </Select>
+      </Form.Item>
+
       <Form.Item>
         <Button 
           type="primary" 
           htmlType="submit" 
           loading={isSubmitting}
+          style={{ marginRight: 8 }}
         >
-          Create User
+          {form.getFieldValue('id') ? 'Update User' : 'Create User'}
         </Button>
-        <Button onClick={() => form.resetFields()}>
+        <Button 
+          onClick={() => form.resetFields()}
+          disabled={isSubmitting}
+        >
           Reset
         </Button>
       </Form.Item>

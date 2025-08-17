@@ -75,20 +75,30 @@ These files enable local development parity with production, support hot reloadi
 - **Location**: `src/api/users.ts`
 - **Purpose**: Provides type-safe interfaces and functions for user-related API calls.
 - **Key Features**:
-  - `User` interface with id, username, email, and status fields
-  - `fetchUsers()`: Retrieves all users
-  - `fetchUserById()`: Fetches a single user by ID
+  - `User` interface with id, username, email, status, and roles array
+  - `UserRole` type defining possible roles: 'admin', 'manager', 'member'
+  - `fetchUsers()`: Retrieves all users with their roles
+  - `fetchUserById()`: Fetches a single user by ID with role information
   - `fetchUsersForDropdown()`: Gets a formatted list of users for dropdown selectors
+  - `createUser()`: Creates a new user with role assignment
+  - `updateUser()`: Updates user details including roles
+  - `deleteUser()`: Removes a user (admin users cannot be deleted)
 
 #### Users Page
 - **Location**: `src/pages/users/Users.tsx`
-- **Purpose**: Displays a list of all system users with search and filter capabilities.
+- **Purpose**: Manages system users with comprehensive role-based access control.
 - **Features**:
-  - Responsive table layout with user details
+  - Responsive table with user details and role badges
   - Search functionality by username or email
-  - Status filtering (active/inactive)
-  - Placeholder for user creation and editing
+  - Status indicators with color-coded tags
+  - Role management with multi-select dropdown
+  - Quick role change functionality
+  - Protected actions (admin users cannot be deleted)
   - Integration with the users API via React Query
+  - Form validation using React Hook Form and Zod
+  - Loading and error states for all operations
+  - Confirmation dialogs for destructive actions
+  - Consistent UI with Ant Design components
 
 ### Project Management
 

@@ -49,7 +49,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(request -> {
                 var corsConfig = new org.springframework.web.cors.CorsConfiguration();
                 corsConfig.setAllowedOrigins(java.util.List.of("http://localhost:5173"));
-                corsConfig.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                corsConfig.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
                 corsConfig.setAllowedHeaders(java.util.List.of("*"));
                 corsConfig.setAllowCredentials(true);
                 return corsConfig;

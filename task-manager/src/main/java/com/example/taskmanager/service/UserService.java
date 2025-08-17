@@ -1,11 +1,16 @@
 package com.example.taskmanager.service;
 
+import com.example.taskmanager.entities.Role;
 import com.example.taskmanager.entities.User;
 import com.example.taskmanager.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -15,8 +20,8 @@ public class UserService {
 
     @Autowired
     public UserService(UserRepository userRepository,
-                       org.springframework.security.crypto.password.PasswordEncoder passwordEncoder,
-                       com.example.taskmanager.repository.RoleRepository roleRepository) {
+            org.springframework.security.crypto.password.PasswordEncoder passwordEncoder,
+            com.example.taskmanager.repository.RoleRepository roleRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.roleRepository = roleRepository;
@@ -40,21 +45,21 @@ public class UserService {
 
         if (incomingRoles == null || incomingRoles.isEmpty()) {
             com.example.taskmanager.entities.Role userRole = roleRepository.findByName("USER")
-                .orElseGet(() -> {
-                    com.example.taskmanager.entities.Role newRole = new com.example.taskmanager.entities.Role();
-                    newRole.setName("USER");
-                    return roleRepository.save(newRole);
-                });
+                    .orElseGet(() -> {
+                        com.example.taskmanager.entities.Role newRole = new com.example.taskmanager.entities.Role();
+                        newRole.setName("USER");
+                        return roleRepository.save(newRole);
+                    });
             persistentRoles.add(userRole);
         } else {
             for (com.example.taskmanager.entities.Role r : incomingRoles) {
                 com.example.taskmanager.entities.Role role = null;
                 if (r.getId() != null) {
                     role = roleRepository.findById(r.getId())
-                        .orElseThrow(() -> new RuntimeException("Role not found: id=" + r.getId()));
+                            .orElseThrow(() -> new RuntimeException("Role not found: id=" + r.getId()));
                 } else if (r.getName() != null) {
                     role = roleRepository.findByName(r.getName())
-                        .orElseThrow(() -> new RuntimeException("Role not found: name=" + r.getName()));
+                            .orElseThrow(() -> new RuntimeException("Role not found: name=" + r.getName()));
                 }
                 if (role != null) {
                     persistentRoles.add(role);
@@ -66,6 +71,42 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    @SuppressWarnings("unchecked")
+    public User partialUpdateUser(Long id, Map<String, Object> updates) {
+        return userRepository.findById(id)
+                .map(user -> {
+                    // Update username if present in the updates
+                    if (updates.containsKey("username")) {
+                        user.setUsername((String) updates.get("username"));
+                    }
+
+                    // Update password if present in the updates
+                    if (updates.containsKey("password")) {
+                        String newPassword = (String) updates.get("password");
+                        if (newPassword != null && !newPassword.isEmpty()) {
+                            user.setPassword(passwordEncoder.encode(newPassword));
+                        }
+                    }
+
+                    if (updates.containsKey("roles")) {
+                        List<Map<String, String>> rolesData = (List<Map<String, String>>) updates.get("roles");
+                        if (rolesData != null) {
+                            Set<Role> roles = rolesData.stream()
+                                    .map(roleData -> {
+                                        String name = roleData.get("name");
+                                        return roleRepository.findByName(name)
+                                                .orElseThrow(() -> new RuntimeException("Role not found: " + name));
+                                    })
+                                    .collect(Collectors.toSet());
+                            user.setRoles(roles); // ✅ Now using managed Role entities
+                        }
+                    }
+                    return userRepository.save(user);
+                })
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    @Deprecated
     public User updateUser(Long id, User updatedUser) {
         return userRepository.findById(id)
                 .map(user -> {
