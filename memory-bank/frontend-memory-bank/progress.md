@@ -108,13 +108,30 @@
   - Implemented `TaskForm.tsx` with form validation using React Hook Form and Zod
   - Added create, read, update, and delete operations for tasks
   - Integrated with the backend API for persistent storage
-- [ ] Add task assignment functionality
-  - Basic assignment implemented via the task form
-  - TODO: Add user selection dropdown for assignment
+- [x] Add task assignment functionality
+  - Enhanced the task form with a user-friendly assignee selection dropdown
+  - Added user avatars with initials for better visual identification
+  - Implemented search and filtering for the assignee list
+  - Added the ability to clear assignments with a clear button
+  - Ensured proper TypeScript typing and form validation
+  - Integrated with the existing users API for real user data
 
 ## Phase 7: User Management (Admin)
-- [ ] Implement user listing
-- [ ] Create user CRUD operations
+- [x] Implement user listing
+  - Created `Users.tsx` page with a responsive table to display users
+  - Added search and filter functionality
+  - Integrated with the existing users API
+  - Added to the main navigation
+- [x] Create user CRUD operations
+  - Added `createUser`, `updateUser`, and `deleteUser` API functions
+  - Created reusable `UserForm` component for create operations
+  - Implemented form validation and error handling with React Hook Form and Zod
+  - Added confirmation dialogs for delete actions
+  - Integrated with React Query for data management
+  - Refined UI to combine username and email into a single field with flexible validation
+  - Removed edit functionality to simplify the interface
+  - Improved search to work with combined username/email field
+  - Fixed validation to properly handle both usernames and email addresses
 - [ ] Add role management
 
 ## Phase 8: Testing

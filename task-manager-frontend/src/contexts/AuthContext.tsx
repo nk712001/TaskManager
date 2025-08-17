@@ -123,20 +123,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         throw new Error('Failed to parse JWT token');
       }
       
-      // Extract user ID from the token claims
-      const userId = payload.userId;
+      // Log the full payload for debugging
+      console.log('Raw JWT payload:', JSON.stringify(payload, null, 2));
+      
+      // Extract user info from the token claims
+      const userId = payload.userId || payload.sub;
       if (!userId) {
-        console.warn('No user ID found in JWT token, falling back to 1');
+        console.warn('No user ID found in JWT token');
+        throw new Error('Invalid user information in token');
       }
+      
+      // Create user object with proper typing
       const userObj: AuthUser = {
-        id: payload?.sub || 'unknown',
-        userId: userId || 1, // Use the numeric user ID from the token, fallback to 1 if not available
-        email: payload?.email || username,
-        name: payload?.name || payload?.username || username.split('@')[0],
-        role: (payload?.roles?.includes('ROLE_ADMIN') ? 'admin' : 'user') as 'admin' | 'user',
+        id: userId.toString(),
+        userId: typeof payload.userId === 'number' ? payload.userId : 1, // Ensure we have a number
+        email: payload.email || payload.sub,
+        name: payload.name || payload.username || (typeof payload.sub === 'string' ? payload.sub.split('@')[0] : 'User'),
+        role: (Array.isArray(payload.roles) && payload.roles.includes('ROLE_ADMIN')) ? 'admin' : 'user',
       };
       
-      console.log('Created user object with ID:', userObj.userId, 'and email:', userObj.email);
+      console.log('Mapped user from token:', userObj);
       console.log('AuthUser object constructed:', userObj);
       
       const tokensObj: AuthTokens = { 

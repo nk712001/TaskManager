@@ -39,12 +39,16 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
                 return rolesArray.includes('ROLE_ADMIN') ? 'admin' : 'user';
               };
               
+              // Create user object with all required fields, including userId from the token
               const userFromToken: AuthUser = {
-                id: decodedToken.sub || 'unknown',
+                id: decodedToken.userId || 'unknown',
+                userId: decodedToken.userId || 1, // Use the numeric userId from the token
                 email: decodedToken.sub || '', // Using sub (email) as the email
                 name: decodedToken.sub?.split('@')[0] || 'User',
                 role: mapRole(decodedToken.roles)
               };
+              
+              console.log('Created user with userId:', userFromToken.userId);
               
               console.log('Mapped user from token:', userFromToken);
               

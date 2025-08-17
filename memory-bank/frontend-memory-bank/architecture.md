@@ -69,6 +69,27 @@ These files enable local development parity with production, support hot reloadi
   - Error handling and loading states
   - Integration with the task API for data persistence
 
+### User Management
+
+#### Users API
+- **Location**: `src/api/users.ts`
+- **Purpose**: Provides type-safe interfaces and functions for user-related API calls.
+- **Key Features**:
+  - `User` interface with id, username, email, and status fields
+  - `fetchUsers()`: Retrieves all users
+  - `fetchUserById()`: Fetches a single user by ID
+  - `fetchUsersForDropdown()`: Gets a formatted list of users for dropdown selectors
+
+#### Users Page
+- **Location**: `src/pages/users/Users.tsx`
+- **Purpose**: Displays a list of all system users with search and filter capabilities.
+- **Features**:
+  - Responsive table layout with user details
+  - Search functionality by username or email
+  - Status filtering (active/inactive)
+  - Placeholder for user creation and editing
+  - Integration with the users API via React Query
+
 ### Project Management
 
 #### Project API Abstraction

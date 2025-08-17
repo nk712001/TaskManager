@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Card, Col, DatePicker, Form, Input, Row, Select, Space, Typography, message } from 'antd';
+import { Avatar, Button, Card, Col, DatePicker, Form, Input, Row, Select, Space, Typography, message } from 'antd';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import type { SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -185,6 +185,12 @@ const TaskForm: React.FC<TaskFormProps> = ({ isEdit = false }) => {
 
   const onSubmit = async (formData: TaskFormValues) => {
     try {
+      // Ensure we have the current user's ID
+      if (!user?.userId) {
+        message.error('User not authenticated or missing user ID');
+        return;
+      }
+
       // Prepare the data for API submission
       const apiData = {
         title: formData.title,
@@ -192,8 +198,10 @@ const TaskForm: React.FC<TaskFormProps> = ({ isEdit = false }) => {
         status: formData.status,
         priority: formData.priority,
         projectId: Number(formData.projectId),
-        creatorId: Number(formData.creatorId),
-        assigneeId: formData.assigneeId ? Number(formData.assigneeId) : null,
+        creatorId: user.userId, // Use the numeric userId from the auth context
+        assigneeId: formData.assigneeId === 'null' || formData.assigneeId === null || formData.assigneeId === undefined 
+          ? null 
+          : Number(formData.assigneeId),
         dueDate: formData.dueDate ? formData.dueDate.format('YYYY-MM-DDTHH:mm:ss.SSS[Z]') : null,
       };
 
@@ -351,20 +359,40 @@ const TaskForm: React.FC<TaskFormProps> = ({ isEdit = false }) => {
                     render={({ field: { value, onChange, ...field } }) => (
                       <Select
                         {...field}
-                        value={value !== undefined && value !== null ? value.toString() : null}
-                        onChange={(val) => onChange(val ? val : null)}
+                        value={value || undefined}
+                        onChange={(val) => onChange(val || null)}
                         loading={isLoadingUsers}
-                        placeholder="Select assignee"
-                        options={[
-                          { value: null, label: 'Unassigned' },
-                          ...users.map(user => ({
-                            value: user.id.toString(),
-                            label: user.username || user.email
-                          }))
-                        ]}
+                        placeholder="Select an assignee"
                         optionFilterProp="label"
                         showSearch
+                        allowClear
                         size="large"
+                        options={users.map((user) => ({
+                          value: user.id.toString(),
+                          label: (
+                            <Space>
+                              <Avatar 
+                                style={{ 
+                                  backgroundColor: '#1890ff',
+                                  color: '#fff',
+                                  textTransform: 'uppercase'
+                                }}
+                              >
+                                {user.username ? user.username.charAt(0) : user.email.charAt(0)}
+                              </Avatar>
+                              <span>{user.username || user.email}</span>
+                            </Space>
+                          ),
+                          searchText: `${user.username || ''} ${user.email}`.toLowerCase(),
+                        }))}
+                        filterOption={(input, option) => {
+                          if (!option) return false;
+                          if (option.value === null) return true;
+                          return (option.searchText || '').includes(input.toLowerCase());
+                        }}
+                        optionRender={(option) => option.data.label}
+                        dropdownMatchSelectWidth={false}
+                        style={{ width: '100%' }}
                       />
                     )}
                   />
