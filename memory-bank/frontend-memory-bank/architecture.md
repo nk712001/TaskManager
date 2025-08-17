@@ -36,6 +36,39 @@ These files enable local development parity with production, support hot reloadi
 - **theme.ts**: Centralizes theme tokens (colors, fonts, radius) for the app. Exports `lightTheme` (and a `darkTheme` scaffold) in Ant Design's ThemeConfig format.
 - **App.tsx**: Wraps the app in both Ant Design's `ConfigProvider` and styled-components' `ThemeProvider`, using the same tokens. This ensures Ant Design components and custom styled-components share a single source of truth for theming. Ready for future dark/light mode.
 
+### Task Management
+
+#### Task API Abstraction
+- **Location**: `src/api/tasks.ts`
+- **Purpose**: Provides a type-safe interface for all task-related backend operations.
+- **Functions**:
+  - `fetchTasks()`: Retrieves tasks with optional filtering and sorting
+  - `createTask()`: Creates a new task with validation
+  - `updateTask()`: Updates an existing task
+  - `deleteTask()`: Removes a task
+- **Type Safety**: Uses TypeScript interfaces for task data structures and API responses
+- **Error Handling**: Consistent error handling with React Query integration
+
+#### TaskList Component
+- **Location**: `src/pages/tasks/TaskList.tsx`
+- **Purpose**: Displays a filterable and sortable list of tasks
+- **Features**:
+  - Server-side filtering and sorting
+  - Pagination support
+  - Status-based filtering
+  - Responsive design for all screen sizes
+  - Integration with React Query for data management
+
+#### TaskForm Component
+- **Location**: `src/pages/tasks/TaskForm.tsx`
+- **Purpose**: Handles task creation and editing
+- **Features**:
+  - Form validation using React Hook Form and Zod
+  - Reusable form component following the project's form pattern
+  - Support for all task fields including title, description, status, priority, and assignment
+  - Error handling and loading states
+  - Integration with the task API for data persistence
+
 ### Project Management
 
 #### Project API Abstraction

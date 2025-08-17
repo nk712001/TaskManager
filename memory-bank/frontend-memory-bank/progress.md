@@ -100,9 +100,17 @@
   - Ensured proper TypeScript typing and error boundaries for robust error handling.
 
 ## Phase 6: Task Management
-- [ ] Implement task listing with filters
-- [ ] Create task CRUD operations
+- [x] Implement task listing with filters
+  - Created `TaskList.tsx` with sortable columns and status filters
+  - Integrated with React Query for data fetching and caching
+  - Added search and filter functionality for tasks
+- [x] Create task CRUD operations
+  - Implemented `TaskForm.tsx` with form validation using React Hook Form and Zod
+  - Added create, read, update, and delete operations for tasks
+  - Integrated with the backend API for persistent storage
 - [ ] Add task assignment functionality
+  - Basic assignment implemented via the task form
+  - TODO: Add user selection dropdown for assignment
 
 ## Phase 7: User Management (Admin)
 - [ ] Implement user listing
