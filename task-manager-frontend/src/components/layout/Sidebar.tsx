@@ -4,7 +4,6 @@ import {
   ProjectOutlined,
   CheckSquareOutlined,
   TeamOutlined,
-  SettingOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
@@ -71,12 +70,7 @@ const Sidebar: FC<SidebarProps> = ({ isMobile, open, onClose }) => {
       key: '/users',
       icon: <TeamOutlined />,
       label: 'Users',
-    },
-    {
-      key: '/settings',
-      icon: <SettingOutlined />,
-      label: 'Settings',
-    },
+    }
   ];
 
   if (isMobile) {

@@ -23,12 +23,19 @@ type ProjectFormValues = z.infer<typeof projectSchema>;
 
 export type ProjectFormInputs = ProjectFormValues;
 
+interface BaseUser {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+}
+
 interface ProjectFormProps {
   initialValues?: Partial<ProjectFormInputs>;
   onSubmit: (values: ProjectFormInputs) => void;
   loading?: boolean;
   error?: string | null;
-  ownerUser?: User;
+  ownerUser?: BaseUser | null;
 }
 
 const ProjectForm: React.FC<ProjectFormProps> = ({ initialValues, onSubmit, loading, error, ownerUser }) => {
@@ -55,38 +62,53 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ initialValues, onSubmit, load
   console.log('ProjectForm render - initialValues:', initialValues);
   console.log('ProjectForm render - ownerUser:', ownerUser);
 
-  // Update form when initialValues changes
+  // Update form when initialValues or ownerUser changes
   useEffect(() => {
-    console.log('useEffect - initialValues changed:', initialValues);
+    console.log('useEffect - initialValues or ownerUser changed:', { initialValues, ownerUser });
+    
+    // If we have initialValues (edit mode)
     if (initialValues) {
+      // Use the ownerUser if available, otherwise use the ID from initialValues
+      const ownerId = ownerUser?.id 
+        ? String(ownerUser.id) 
+        : initialValues.owner?.id 
+          ? String(initialValues.owner.id) 
+          : '';
+          
       const values = {
-        name: initialValues.name,
+        name: initialValues.name || '',
         description: initialValues.description || '',
-        owner: { id: String(initialValues.owner?.id || '') }
+        owner: { id: ownerId }
       };
-      console.log('Setting form values:', values);
+      
+      console.log('Setting form values for edit mode:', values);
       reset(values);
-      console.log('Form values after reset:', getValues());
-    } else if (isSingleUser && singleUserId) {
+    } 
+    // If we're creating a new project and have a single user
+    else if (isSingleUser && singleUserId) {
       reset({
         name: '',
         description: '',
         owner: { id: singleUserId }
       });
-    } else if (ownerUser) {
+    } 
+    // If we have an ownerUser but no initialValues
+    else if (ownerUser) {
       reset({
         name: '',
         description: '',
         owner: { id: String(ownerUser.id) }
       });
-    } else {
+    } 
+    // Default case
+    else {
       reset({
         name: '',
         description: '',
         owner: { id: '' }
       });
     }
-  }, [initialValues, isSingleUser, singleUserId, ownerUser, reset]);
+  }, [initialValues, isSingleUser, singleUserId, ownerUser, reset, getValues]);
 
   const userOptions = useMemo(() => {
     // Create a map to ensure unique users by ID

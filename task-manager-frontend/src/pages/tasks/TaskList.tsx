@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { 
-  Button, Card, Col, Form, Input, Row, Select, Space, Table, Tag, Typography, message, Modal 
+  Button, Card, Col, Drawer, Form, Input, Row, Select, Space, Table, Tag, Typography, message, Modal 
 } from 'antd';
 import { DatePicker } from 'antd';
 import { 
@@ -10,10 +10,13 @@ import {
 import type { Task as TaskType, UserRef } from '../../api/tasks';
 import api from '../../api/axios';
 import dayjs from 'dayjs';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import TaskForm from './TaskForm';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
   fetchTasks, type TaskListResponse, emptyTaskListResponse, type TaskFilters 
 } from '../../api/tasks';
+import { fetchProjectsForDropdown } from '../../api/projects';
+import { fetchUsersForDropdown } from '../../api/users';
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -40,13 +43,14 @@ interface FilterFormValues {
   dateRange?: [dayjs.Dayjs | null, dayjs.Dayjs | null];
 }
 
-const TaskListComponent: React.FC = () => {
+const TaskList: React.FC = () => {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [filtersVisible, setFiltersVisible] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
   const [form] = Form.useForm<FilterFormValues>();
   
   // Parse URL params for pagination and filters (0-based page index)
@@ -152,6 +156,74 @@ const TaskListComponent: React.FC = () => {
   console.log('Rendering TaskList with page:', page, 'pageSize:', pageSize);
   console.log('Current preparedFilters:', preparedFilters);
   
+  // Fetch projects for the project filter
+  const { 
+    data: projects = [], 
+    isLoading: isLoadingProjects,
+    error: projectsError 
+  } = useQuery({
+    queryKey: ['projects'],
+    queryFn: fetchProjectsForDropdown,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch users for assignee dropdown
+  const { 
+    data: users = [], 
+    isLoading: isLoadingUsers,
+    error: usersError 
+  } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsersForDropdown,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Show error message if projects fail to load
+  useEffect(() => {
+    if (projectsError) {
+      console.error('Error fetching projects:', projectsError);
+      message.error('Failed to load projects');
+    }
+  }, [projectsError]);
+
+  // Format projects for the Select component with better error handling
+  const projectOptions = useMemo(() => {
+    try {
+      if (!projects || !Array.isArray(projects)) {
+        console.warn('Invalid projects data:', projects);
+        return [];
+      }
+      return projects.map(project => ({
+        value: project.value,
+        label: project.label || `Project ${project.value}`,
+      }));
+    } catch (error) {
+      console.error('Error formatting project options:', error);
+      return [];
+    }
+  }, [projects]);
+
+  // Format users for the Select component with better error handling
+  const assigneeOptions = useMemo(() => {
+    try {
+      if (!users || !Array.isArray(users)) {
+        console.warn('Invalid users data:', users);
+        return [];
+      }
+      return users.map(user => ({
+        value: user.value,
+        label: user.label || `User ${user.value}`,
+      }));
+    } catch (error) {
+      console.error('Error formatting assignee options:', error);
+      return [];
+    }
+    return users.map(user => ({
+      value: user.value,
+      label: user.label,
+    }));
+  }, [users]);
+
   // Fetch tasks with current filters and pagination
   console.log('Setting up useQuery with key:', ['tasks', { ...preparedFilters, page, pageSize }]);
   const { 
@@ -232,9 +304,9 @@ const TaskListComponent: React.FC = () => {
       title: 'Title',
       dataIndex: 'title',
       key: 'title',
-      render: (text: string, record: TaskType) => (
+      render: (text: string, record: any) => (
         <Link to={`/tasks/${record.id}`}>
-          <Text strong>{text}</Text>
+          {text}
         </Link>
       ),
     },
@@ -244,11 +316,11 @@ const TaskListComponent: React.FC = () => {
       key: 'status',
       render: (status: string) => {
         const statusOption = statusOptions.find(opt => opt.value === status);
-        return (
-          <Tag color={statusOption?.color}>
-            {statusOption?.label || status}
+        return statusOption ? (
+          <Tag color={statusOption.color}>
+            {statusOption.label}
           </Tag>
-        );
+        ) : status;
       },
     },
     {
@@ -289,7 +361,7 @@ const TaskListComponent: React.FC = () => {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              handleEdit(record.id);
+              handleEdit(record);
             }}
             title="Edit task"
           />
@@ -310,10 +382,20 @@ const TaskListComponent: React.FC = () => {
     },
   ];
   
-  // Handle edit task
-  const handleEdit = (taskId: number) => {
-    // Navigate to the task edit page with the task ID in the URL
-    navigate(`/tasks/${taskId}/edit`);
+  const handleEdit = (task: TaskType) => {
+    setSelectedTask(task);
+    setIsDrawerOpen(true);
+  };
+
+const handleDrawerClose = () => {
+    setIsDrawerOpen(false);
+    setSelectedTask(null);
+  };
+
+  const handleTaskSubmitSuccess = () => {
+    setIsDrawerOpen(false);
+    setSelectedTask(null);
+    queryClient.invalidateQueries({ queryKey: ['tasks', searchParams.toString()] });
   };
 
   // Handle delete confirmation
@@ -329,11 +411,12 @@ const TaskListComponent: React.FC = () => {
     },
     onSuccess: () => {
       message.success('Task deleted successfully');
+      // Invalidate all task queries to force refetch
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
     onError: (error: any) => {
       console.error('Error deleting task:', error);
-      message.error(error.response?.data?.message || 'Failed to delete task');
+      message.error(error?.response?.data?.message || 'Failed to delete task');
     },
     onSettled: () => {
       setDeleteModalVisible(false);
@@ -364,90 +447,136 @@ const TaskListComponent: React.FC = () => {
   };
 
   return (
-    <Card>
-      <div style={{ marginBottom: 16 }}>
-        <Space>
-          <Button 
-            icon={<FilterOutlined />} 
-            onClick={() => setFiltersVisible(!filtersVisible)}
-          >
-            {filtersVisible ? 'Hide Filters' : 'Show Filters'}
-          </Button>
-          <Button 
-            icon={<ReloadOutlined />} 
-            onClick={() => window.location.reload()}
-            loading={isFetching}
-          >
-            Refresh
-          </Button>
-        </Space>
-      </div>
-      
-      {filtersVisible && (
-        <Card 
-          type="inner" 
-          title="Filters" 
-          style={{ marginBottom: 16 }}
-          extra={
+    <div className="task-list">
+      <Drawer
+        title={selectedTask ? 'Edit Task' : 'Create New Task'}
+        width={720}
+        onClose={handleDrawerClose}
+        open={isDrawerOpen}
+        destroyOnClose
+        styles={{
+          body: {
+            paddingBottom: 80,
+          },
+        }}
+      >
+        <TaskForm 
+          task={selectedTask || undefined}
+          projectId={initialFilters.projectId}
+          onSuccess={handleTaskSubmitSuccess}
+          onCancel={handleDrawerClose}
+        />
+      </Drawer>
+      <Card title="Tasks">
+        <div style={{ marginBottom: 16 }}>
+          <Space>
             <Button 
-              type="link" 
-              size="small" 
-              onClick={handleResetFilters}
+              icon={<FilterOutlined />} 
+              onClick={() => setFiltersVisible(!filtersVisible)}
             >
-              Clear Filters
+              {filtersVisible ? 'Hide Filters' : 'Show Filters'}
             </Button>
-          }
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleFilterSubmit}
-            initialValues={initialFilters}
-          >
-            <Row gutter={16}>
-              <Col xs={24} sm={12} md={8} lg={6}>
-                <Form.Item name="search" label="Search">
-                  <Input 
-                    placeholder="Search tasks..." 
-                    prefix={<SearchOutlined />} 
-                    allowClear
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={8} lg={6}>
-                <Form.Item name="status" label="Status">
-                  <Select
-                    mode="multiple"
-                    placeholder="Select status"
-                    options={statusOptions}
-                    allowClear
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={8} lg={6}>
-                <Form.Item name="priority" label="Priority">
-                  <Select
-                    mode="multiple"
-                    placeholder="Select priority"
-                    options={priorityOptions}
-                    allowClear
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={8} lg={6}>
-                <Form.Item name="dateRange" label="Due Date Range">
-                  <RangePicker style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-            <div style={{ textAlign: 'right' }}>
-              <Button type="primary" htmlType="submit" loading={isFetching}>
-                Apply Filters
+            <Button 
+              icon={<ReloadOutlined />} 
+              onClick={() => window.location.reload()}
+              loading={isFetching}
+            >
+              Refresh
+            </Button>
+          </Space>
+        </div>
+        
+        {filtersVisible && (
+          <Card 
+            type="inner" 
+            title="Filters" 
+            style={{ marginBottom: 16 }}
+            extra={
+              <Button 
+                type="link" 
+                size="small" 
+                onClick={handleResetFilters}
+              >
+                Clear Filters
               </Button>
-            </div>
-          </Form>
-        </Card>
-      )}
+            }
+          >
+            <Form form={form} onFinish={handleFilterSubmit}>
+              <Row gutter={16}>
+                <Col xs={24} sm={12} md={8} lg={6}>
+                  <Form.Item name="search" label="Search">
+                    <Input 
+                      placeholder="Search tasks..." 
+                      prefix={<SearchOutlined />} 
+                      allowClear
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8} lg={6}>
+                  <Form.Item name="status" label="Status">
+                    <Select
+                      mode="multiple"
+                      placeholder="Select status"
+                      options={statusOptions}
+                      allowClear
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8} lg={6}>
+                  <Form.Item name="priority" label="Priority">
+                    <Select
+                      mode="multiple"
+                      placeholder="Select priority"
+                      options={priorityOptions}
+                      allowClear
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8} lg={6}>
+                  <Form.Item name="projectId" label="Project">
+                    <Select
+                      placeholder={isLoadingProjects ? 'Loading projects...' : 'Select project'}
+                      options={projectOptions}
+                      loading={isLoadingProjects}
+                      showSearch
+                      optionFilterProp="label"
+                      filterOption={(input, option) =>
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                      notFoundContent={isLoadingProjects ? 'Loading...' : 'No projects found'}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8} lg={6}>
+                  <Form.Item name="assigneeId" label="Assignee">
+                    <Select
+                      mode="multiple"
+                      placeholder={isLoadingUsers ? 'Loading assignees...' : 'Select assignee(s)'}
+                      options={assigneeOptions}
+                      loading={isLoadingUsers}
+                      showSearch
+                      optionFilterProp="label"
+                      filterOption={(input, option) =>
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                      notFoundContent={isLoadingUsers ? 'Loading...' : 'No assignees found'}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12} md={8} lg={6}>
+                  <Form.Item name="dateRange" label="Due Date Range">
+                    <RangePicker style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <div style={{ textAlign: 'right' }}>
+                <Button type="primary" htmlType="submit" loading={isFetching}>
+                  Apply Filters
+                </Button>
+              </div>
+            </Form>
+          </Card>
+        )}
       
       <Table
         dataSource={safeTasksData.data}
@@ -477,7 +606,7 @@ const TaskListComponent: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       <Modal
-        title="Confirm Delete"
+        title="Delete Task"
         open={deleteModalVisible}
         onOk={confirmDelete}
         onCancel={cancelDelete}
@@ -486,8 +615,8 @@ const TaskListComponent: React.FC = () => {
         <p>Are you sure you want to delete this task? This action cannot be undone.</p>
       </Modal>
     </Card>
+  </div>
   );
 };
 
-const TaskList = TaskListComponent;
 export default TaskList;

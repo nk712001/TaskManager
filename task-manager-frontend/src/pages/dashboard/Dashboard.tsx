@@ -3,8 +3,7 @@ import { Typography, Card, Spin, Alert, Row, Col } from 'antd';
 import { useDashboardStats, useRecentActivities } from '../../hooks/useDashboard';
 import OverviewCards from '../../components/dashboard/OverviewCards';
 import StatusSummaryChart from '../../components/dashboard/StatusSummaryChart';
-import RecentActivityFeed from '../../components/dashboard/RecentActivityFeed';
-import type { ActivityItem } from '../../components/dashboard/RecentActivityFeed';
+import RecentActivityFeed, { type ActivityItem } from '../../components/dashboard/RecentActivityFeed';
 
 const { Title } = Typography;
 
@@ -47,10 +46,25 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Ensure activities is always an array
-  const safeActivities: ActivityItem[] = Array.isArray(activities) 
-    ? activities 
-    : [];
+  // Transform and ensure activities are properly typed
+  const safeActivities: ActivityItem[] = (Array.isArray(activities) ? activities : []).map(activity => ({
+    ...activity,
+    // Ensure all required fields have proper fallbacks
+    id: activity.id || `activity-${Date.now()}`,
+    timestamp: activity.timestamp || new Date().toISOString(),
+    user: {
+      id: activity.user?.id || 'system',
+      username: activity.user?.username || 'System',
+      email: activity.user?.email || '',
+      avatar: activity.user?.avatar
+    },
+    metadata: {
+      ...activity.metadata,
+      // Ensure task and project IDs are strings for consistency
+      taskId: activity.metadata?.taskId?.toString(),
+      projectId: activity.metadata?.projectId?.toString()
+    }
+  }));
 
   return (
     <div style={{ padding: '24px' }}>
@@ -69,13 +83,11 @@ const Dashboard: React.FC = () => {
           </Card>
         </Col>
         <Col xs={24} lg={8}>
-          <Card title="Recent Activity">
-            <RecentActivityFeed 
-              activities={safeActivities} 
-              isLoading={isLoadingActivities}
-              isRefreshing={isRefreshingActivities}
-            />
-          </Card>
+          <RecentActivityFeed 
+            activities={safeActivities} 
+            isLoading={isLoadingActivities}
+            isRefreshing={isRefreshingActivities}
+          />
         </Col>
       </Row>
     </div>

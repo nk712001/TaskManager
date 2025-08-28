@@ -52,7 +52,7 @@ const emptyTaskListResponse: TaskListResponse = {
 
 export { emptyTaskListResponse };
 
-export const fetchTasks = async (filters: TaskFilters = {}, page = 1, limit = 100): Promise<TaskListResponse> => {
+export const fetchTasks = async (filters: TaskFilters = {}, page = 0, limit = 100): Promise<TaskListResponse> => {
   console.log('=== fetchTasks called with ===');
   console.log('Filters:', filters);
   console.log('Page:', page, 'Limit:', limit);
@@ -60,7 +60,7 @@ export const fetchTasks = async (filters: TaskFilters = {}, page = 1, limit = 10
   try {
     // Prepare query parameters
     const params: Record<string, string> = {
-      page: page.toString(),
+      page: page.toString(), // Send 0-based page to backend
       size: limit.toString()
     };
 
@@ -82,8 +82,11 @@ export const fetchTasks = async (filters: TaskFilters = {}, page = 1, limit = 10
       headers: response.headers
     });
     
-    // Handle the response data
-    const responseData = response.data;
+    // Handle the response data and convert 1-based page back to 0-based
+    const responseData = {
+      ...response.data,
+      page: Math.max(0, (response.data.page || 1) - 1) // Convert 1-based to 0-based
+    };
     
     // If we get a total > 0 but empty data array, log a warning
     if (responseData && responseData.total > 0 && 
@@ -150,11 +153,11 @@ export const deleteTask = async (id: string): Promise<void> => {
 };
 
 export const updateTaskStatus = async (id: string, status: Task['status']): Promise<Task> => {
-  const { data } = await api.patch(`/v1/tasks/${id}/status`, { status });
+  const { data } = await api.patch(`/v1/tasks/${id}`, { status });
   return data;
 };
 
 export const assignTask = async (taskId: string, userId: string): Promise<Task> => {
-  const { data } = await api.patch(`/v1/tasks/${taskId}/assign`, { userId });
+  const { data } = await api.patch(`/v1/tasks/${taskId}`, { assigneeId: userId });
   return data;
 };

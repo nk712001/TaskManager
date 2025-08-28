@@ -1,5 +1,5 @@
 import { Layout, Dropdown, Avatar, Menu } from 'antd';
-import { LogoutOutlined, UserOutlined, SettingOutlined } from '@ant-design/icons';
+import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -33,13 +33,6 @@ const Header: FC<HeaderProps> = ({ isMobile, onMenuClick }) => {
 
   const menu = (
     <Menu>
-      <Menu.Item key="profile" icon={<UserOutlined />}>
-        Profile
-      </Menu.Item>
-      <Menu.Item key="settings" icon={<SettingOutlined />}>
-        Settings
-      </Menu.Item>
-      <Menu.Divider />
       <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={logout}>
         Logout
       </Menu.Item>

@@ -69,74 +69,147 @@ export const fetchDashboardStats = async () => {
 
 export interface ActivityItem {
   id: string;
+  type: string;
   action: string;
   target: string;
+  targetId?: string;
+  targetType?: 'task' | 'project' | 'user';
+  status?: string;
   timestamp: string;
   user: {
     id: string;
     username: string;
     email: string;
+    avatar?: string;
+  };
+  metadata?: {
+    taskId?: string | number;
+    taskTitle?: string;
+    projectId?: string | number;
+    projectName?: string;
+    dueDate?: string;
+    priority?: string;
+    [key: string]: any;
   };
 }
 
 export const fetchRecentActivities = async (): Promise<ActivityItem[]> => {
   try {
-    // Fetch both projects and tasks to generate recent activities
-    const [projectsRes, tasksRes] = await Promise.all([
-      api.get('/v1/projects'),
-      api.get('/v1/tasks'),
+    // Fetch projects, tasks, and users to generate recent activities
+    const [projectsRes, tasksRes, usersRes] = await Promise.all([
+      api.get('/v1/projects?limit=20&sort=-createdAt'),
+      api.get('/v1/tasks?limit=20&sort=-updatedAt&include=assignee,creator,project'),
+      api.get('/v1/users?limit=100'), // Get more users to reduce missing user info
     ]);
 
-    // Ensure we have valid data
+    // Process the responses with proper type safety
     const projects = Array.isArray(projectsRes?.data) ? projectsRes.data : [];
-    const tasks = Array.isArray(tasksRes?.data) ? tasksRes.data : [];
+    
+    // Handle both paginated and non-paginated task responses
+    let tasks: any[] = [];
+    if (tasksRes?.data) {
+      tasks = Array.isArray(tasksRes.data.data) 
+        ? tasksRes.data.data  // Paginated response
+        : (Array.isArray(tasksRes.data) ? tasksRes.data : []); // Non-paginated response
+    }
+    
+    const users = Array.isArray(usersRes?.data) ? usersRes.data : [];
 
-    // Generate activities from projects (e.g., project creation)
+    // Create a map of user IDs to user objects for quick lookup
+    const userMap = users.reduce<Record<string, any>>((acc, user) => {
+      if (user?.id) {
+        acc[user.id] = {
+          id: user.id.toString(),
+          username: user.username || 'Unknown User',
+          email: user.email || '',
+          avatar: user.avatar
+        };
+      }
+      return acc;
+    }, {});
+
+    // Default user for missing user data
+    const defaultUser = {
+      id: 'system',
+      username: 'System',
+      email: '',
+      avatar: undefined
+    };
+
+    // Generate activities from projects
     const projectActivities: ActivityItem[] = projects
-      .slice(0, 5)
-      .filter((project: any) => project && project.id)
+      .filter((project: any) => project?.id)
       .map((project: any) => ({
         id: `project-${project.id}`,
+        type: 'PROJECT_CREATED',
         action: 'created project',
         target: project.name || 'Untitled Project',
+        targetId: project.id.toString(),
+        targetType: 'project' as const,
         timestamp: project.createdAt || new Date().toISOString(),
-        user: {
-          id: project.ownerId?.toString() || '1',
-          username: project.owner?.username || project.ownerName || 'User',
-          email: project.owner?.email || 'user@example.com',
-        },
+        user: project.ownerId ? {
+          id: userMap[project.ownerId]?.id || 'system',
+          username: userMap[project.ownerId]?.username || 'System',
+          email: userMap[project.ownerId]?.email || '',
+          avatar: userMap[project.ownerId]?.avatar
+        } : defaultUser,
+        metadata: {
+          projectId: project.id,
+          projectName: project.name,
+          description: project.description
+        }
       }));
 
-    // Generate activities from tasks (e.g., task updates)
+    // Generate activities from tasks
     const taskActivities: ActivityItem[] = tasks
-      .filter((task: any) => task && task.id) // Ensure task is valid
-      .sort((a: any, b: any) => {
-        const dateA = a.updatedAt || a.createdAt || 0;
-        const dateB = b.updatedAt || b.createdAt || 0;
-        return new Date(dateB).getTime() - new Date(dateA).getTime();
-      })
-      .slice(0, 5)
-      .map((task: any) => ({
-        id: `task-${task.id}`,
-        action: `updated task to ${task.status || 'unknown status'}`,
-        target: task.title || 'Untitled Task',
-        timestamp: task.updatedAt || task.createdAt || new Date().toISOString(),
-        user: {
-          id: task.assigneeId?.toString() || task.creatorId?.toString() || '1',
-          username: task.assignee?.username || task.creator?.username || 'User',
-          email: task.assignee?.email || task.creator?.email || 'user@example.com',
-        },
-      }));
+      .filter((task: any) => task?.id)
+      .map((task: any) => {
+        const assignee = task.assigneeId ? userMap[task.assigneeId] : null;
+        const creator = task.creatorId ? userMap[task.creatorId] : null;
+        const activityUser = assignee || creator || defaultUser;
+        
+        // Determine activity type based on task status and update time
+        let activityType = 'TASK_UPDATED';
+        if (task.status === 'COMPLETED') {
+          activityType = 'TASK_COMPLETED';
+        } else if (task.status === 'PENDING' && task.createdAt === task.updatedAt) {
+          activityType = 'TASK_CREATED';
+        }
 
-    // Combine and sort all activities by timestamp
+        return {
+          id: `task-${task.id}`,
+          type: activityType,
+          action: activityType.toLowerCase().replace('_', ' '),
+          target: task.title || 'Untitled Task',
+          targetId: task.id.toString(),
+          targetType: 'task' as const,
+          status: task.status,
+          timestamp: task.updatedAt || task.createdAt || new Date().toISOString(),
+          user: {
+            id: activityUser.id,
+            username: activityUser.username,
+            email: activityUser.email,
+            avatar: activityUser.avatar
+          },
+          metadata: {
+            taskId: task.id,
+            taskTitle: task.title,
+            projectId: task.projectId,
+            projectName: task.project?.name,
+            dueDate: task.dueDate,
+            priority: task.priority,
+            status: task.status
+          }
+        };
+      });
+
+    // Combine and sort all activities by timestamp (newest first)
     const allActivities = [...projectActivities, ...taskActivities]
-      .filter(activity => activity) // Filter out any undefined/null activities
-      .sort((a, b) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
+      .filter(Boolean) // Remove any null/undefined activities
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-    // Return the 5 most recent activities
-    return allActivities.slice(0, 5);
+    // Return the 20 most recent activities
+    return allActivities.slice(0, 20);
   } catch (error) {
     console.error('Error fetching recent activities:', error);
     return [];

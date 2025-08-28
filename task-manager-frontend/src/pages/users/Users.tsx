@@ -88,7 +88,11 @@ const Users: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to delete user');
+      if (error.response?.data?.message?.includes('foreign key constraint')) {
+        message.error('Cannot delete user: This user is assigned to one or more tasks. Please reassign or delete those tasks first.');
+      } else {
+        message.error(error.response?.data?.message || 'Failed to delete user');
+      }
     },
   });
 
@@ -113,11 +117,19 @@ const Users: React.FC = () => {
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
-    form.setFieldsValue({
-      ...user,
-      // Format the username/email field based on what's available
-      username: user.username || user.email
-    });
+    // Reset form first to clear any previous state
+    form.resetFields();
+    
+    // Set form values with a small delay to ensure form is ready
+    setTimeout(() => {
+      form.setFieldsValue({
+        id: user.id,
+        username: user.username || user.email || '',
+        email: user.email || '',
+        roles: user.roles || ['user']
+      });
+    }, 100);
+    
     setIsModalVisible(true);
   };
 
@@ -354,6 +366,7 @@ const Users: React.FC = () => {
           form={form}
           onFinish={handleSubmit}
           isSubmitting={isSubmitting}
+          isEditing={!!editingUser}
         />
       </Modal>
     </div>

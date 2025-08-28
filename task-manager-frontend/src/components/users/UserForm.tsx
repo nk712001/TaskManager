@@ -17,12 +17,14 @@ interface UserFormProps {
   form: FormInstance;
   onFinish: (values: CreateUserData) => Promise<void>;
   isSubmitting: boolean;
+  isEditing?: boolean;
 }
 
 const UserForm: React.FC<UserFormProps> = ({
   form,
   onFinish,
   isSubmitting,
+  isEditing = false,
 }) => {
   const onFinishFailed = (errorInfo: any) => {
     console.log('Failed:', errorInfo);
@@ -157,7 +159,7 @@ const UserForm: React.FC<UserFormProps> = ({
           loading={isSubmitting}
           style={{ marginRight: 8 }}
         >
-          {form.getFieldValue('id') ? 'Update User' : 'Create User'}
+          {isEditing ? 'Update User' : 'Create User'}
         </Button>
         <Button 
           onClick={() => form.resetFields()}

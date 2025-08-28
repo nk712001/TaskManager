@@ -123,6 +123,32 @@ public class TaskController {
         }
     }
 
+    @PatchMapping("/{id}")
+    public ResponseEntity<TaskDTO> patchTask(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> updates) {
+        try {
+            // Extract status if present
+            Task.Status status = null;
+            if (updates.containsKey("status") && updates.get("status") != null) {
+                status = Task.Status.valueOf(updates.get("status").toString().toUpperCase());
+            }
+            
+            // Extract assigneeId if present
+            Long assigneeId = null;
+            if (updates.containsKey("assigneeId") && updates.get("assigneeId") != null) {
+                assigneeId = Long.parseLong(updates.get("assigneeId").toString());
+            }
+            
+            Task updated = taskService.partialUpdateTask(id, status, assigneeId);
+            return ResponseEntity.ok(EntityToDTOMapper.toTaskDTO(updated));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);

@@ -1,439 +1,496 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Avatar, Button, Card, Col, DatePicker, Form, Input, Row, Select, Space, Typography, message } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import { Button, Card, Col, DatePicker, Form, Input, Row, Select, Space, Spin, Alert, message } from 'antd';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import type { SubmitHandler } from 'react-hook-form';
+import dayjs, { Dayjs } from 'dayjs';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import dayjs from 'dayjs';
-// Define Task interface that matches our API
+import * as z from 'zod';
+import { type Task } from '../../api/tasks';
+import { fetchProjects } from '../../api/projects';
+import { fetchUsersForDropdown, type UserDropdownOption } from '../../api/users';
+import { useAuth } from '../../contexts/AuthContext';
+import { useCreateTask, useUpdateTask } from '../../hooks/useTasks';
+
+// Types and interfaces
 type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
-
-interface Task {
-  id: number;
-  title: string;
-  description?: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  dueDate?: string | null;
-  projectId: number;
-  assigneeId?: number | null;
-  creatorId: number;
-  createdAt: string;
-  updatedAt: string;
-  creator?: { id: number; name?: string; email: string };
-  assignee?: { id: number; name?: string; email: string } | null;
-}
-
-import { createTask, updateTask, fetchTaskById } from '../../api/tasks';
-import { fetchProjects } from '../../api/projects';
-import { fetchUsers } from '../../api/users';
-import { useAuth } from '../../contexts/AuthContext';
-
-// Status and priority options
-const statusOptions: { value: Task['status']; label: string }[] = [
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'IN_PROGRESS', label: 'In Progress' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-];
-
-const priorityOptions: { value: Task['priority']; label: string }[] = [
-  { value: 'LOW' as const, label: 'Low' },
-  { value: 'MEDIUM' as const, label: 'Medium' },
-  { value: 'HIGH' as const, label: 'High' },
-];
-
-// Remove unused types
-
-// Define form values type
-type TaskFormValues = {
-  title: string;
-  description?: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  dueDate?: dayjs.Dayjs | null;
-  projectId: string;
-  assigneeId?: string | null;
-  creatorId: string;
-};
-
-// Form schema using Zod
-const taskFormSchema = z.object({
-  title: z.string()
-    .min(3, 'Title must be at least 3 characters')
-    .max(100, 'Title cannot exceed 100 characters'),
-  description: z.string()
-    .max(1000, 'Description cannot exceed 1000 characters')
-    .optional(),
-  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'] as const),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH'] as const),
-  dueDate: z.any()
-    .transform((val) => {
-      if (!val) return null;
-      return dayjs.isDayjs(val) ? val : dayjs(val);
-    })
-    .optional()
-    .nullable(),
-  projectId: z.string().min(1, 'Please select a project'),
-  assigneeId: z.string().nullable().optional(),
-  creatorId: z.string().min(1, 'Creator is required'),
-}) as z.ZodType<TaskFormValues>;
 
 interface Project {
   id: string;
   name: string;
 }
 
-interface User {
-  id: string;
-  name?: string;
-  email: string;
-}
-
 interface TaskFormProps {
-  isEdit?: boolean;
+  task?: any; // Task data when editing
+  initialValues?: Record<string, any>; // Initial values for the form
+  projectId?: string; // Current project ID to auto-select
+  onSuccess?: () => void;
+  onCancel?: () => void;
+  loading?: boolean;
+  error?: string | null;
 }
 
-const TaskForm: React.FC<TaskFormProps> = ({ isEdit = false }) => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
+// Form values type
+interface TaskFormValues {
+  title: string;
+  description?: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  projectId: string;  // Keep as string for form handling
+  assigneeId: string | null;
+  creatorId: string;
+  dueDate: Dayjs | null;
+  creator?: {
+    id: number;
+    email?: string;
+    username?: string;
+  };
+  id?: number;
+  email?: string;
+  username?: string;
+  assignee?: {
+    id: number;
+    email?: string;
+    username?: string;
+  };
+}
 
-  const methods = useForm<TaskFormValues>({
-    resolver: zodResolver(taskFormSchema as any), // Type assertion to handle the resolver type
+// API data type (what we send to the server)
+interface TaskAPIData {
+  title: string;
+  description?: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  projectId: number;
+  assigneeId: number | null;
+  creatorId: number;
+  dueDate?: string;
+}
+
+// Status and priority options
+const statusOptions: { value: TaskStatus; label: string }[] = [
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'CANCELLED', label: 'Cancelled' },
+];
+
+const priorityOptions: { value: TaskPriority; label: string }[] = [
+  { value: 'LOW' as const, label: 'Low' },
+  { value: 'MEDIUM' as const, label: 'Medium' },
+  { value: 'HIGH' as const, label: 'High' },
+];
+
+
+// Form schema using Zod
+const taskFormSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+  projectId: z.string().min(1, 'Project is required'),
+  assigneeId: z.string().nullable(),
+  creatorId: z.string().min(1, 'Creator is required'),
+  dueDate: z.any().optional(),
+});
+
+const TaskForm: React.FC<TaskFormProps> = ({
+  task: initialTask,
+  initialValues = {},
+  projectId,
+  onSuccess,
+  onCancel,
+  loading = false,
+  error = null
+}) => {
+  const { user } = useAuth();
+  const isEdit = !!initialTask;
+  const createTaskMutation = useCreateTask();
+  const updateTaskMutation = useUpdateTask();
+
+  const formMethods = useForm<TaskFormValues>({
+    resolver: zodResolver(taskFormSchema as any),
     defaultValues: {
       title: '',
       description: '',
       status: 'PENDING',
       priority: 'MEDIUM',
-      dueDate: null,
-      projectId: '',
+      projectId: projectId ? String(projectId) : (initialValues?.projectId ? String(initialValues.projectId) : ''),
       assigneeId: null,
-      creatorId: user?.id ? String(user.id) : '',
+      creatorId: String(user?.id || ''),
+      creator: user ? { 
+        id: Number(user.id), 
+        email: user.email || '', 
+        username: user.username || user.email?.split('@')[0] || 'User' 
+      } : undefined,
+      dueDate: null,
+      ...initialValues,
     },
   });
 
-  const { handleSubmit, control, reset, formState: { errors } } = methods;
+  const { handleSubmit, control, reset, watch, formState: { errors } } = formMethods;
+  const creator = watch('creator');
+
+  // Set initial form values when initialTask or projectId changes
+  React.useEffect(() => {
+    console.log('[TaskForm] useEffect - initialTask:', initialTask);
+    console.log('[TaskForm] useEffect - projectId:', projectId);
+    
+    if (initialTask) {
+      const formValues = {
+        ...initialTask,
+        projectId: initialTask.projectId?.toString() || projectId?.toString() || '',
+        assigneeId: initialTask.assigneeId?.toString() || null,
+        creatorId: initialTask.creatorId?.toString() || user?.id?.toString() || '',
+        creator: initialTask.creator || (user ? { 
+          id: Number(user.id), 
+          email: user.email || '', 
+          username: user.username || user.email?.split('@')[0] || 'User' 
+        } : undefined),
+        dueDate: initialTask.dueDate ? dayjs(initialTask.dueDate) : null,
+      };
+      console.log('[TaskForm] Setting form values from initialTask:', formValues);
+      reset(formValues);
+    } else if (projectId) {
+      const defaultValues = {
+        title: '',
+        description: '',
+        status: 'PENDING',
+        priority: 'MEDIUM',
+        projectId: projectId.toString(),
+        assigneeId: null,
+        creatorId: user?.id?.toString() || '',
+        creator: user ? { 
+          id: Number(user.id), 
+          email: user.email || '', 
+          username: user.username || user.email?.split('@')[0] || 'User' 
+        } : undefined,
+        dueDate: null,
+      };
+      console.log('[TaskForm] Setting default form values:', defaultValues);
+      reset(defaultValues);
+    }
+  }, [initialTask, projectId, reset, user?.id]);
 
   // Fetch projects
   const { data: projects = [], isLoading: isLoadingProjects } = useQuery<Project[]>({
     queryKey: ['projects'],
     queryFn: fetchProjects,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Fetch users for assignee dropdown
-  const { data: users = [], isLoading: isLoadingUsers } = useQuery({
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery<UserDropdownOption[]>({
     queryKey: ['users'],
-    queryFn: fetchUsers,
+    queryFn: fetchUsersForDropdown,
   });
 
-  // Fetch task data if in edit mode
-  const { data: task, isLoading: isLoadingTask } = useQuery<Task>({
-    queryKey: ['task', id],
-    queryFn: () => {
-      if (!id) return Promise.reject(new Error('No task ID provided'));
-      return fetchTaskById(id);
-    },
-    enabled: isEdit && !!id,
-  });
+  // Transform task data to form values
+  const task = React.useMemo((): TaskFormValues | null => {
+    if (!initialTask) return null;
+    return {
+      ...initialTask,
+      projectId: String(initialTask.projectId || ''),
+      creatorId: String(initialTask.creatorId || user?.id || ''),
+      creator: initialTask.creator || { 
+        id: initialTask.creatorId, 
+        username: user?.username || user?.email?.split('@')[0] || 'User',
+        email: user?.email
+      },
+      assigneeId: initialTask.assigneeId ? String(initialTask.assigneeId) : null,
+      dueDate: initialTask.dueDate ? dayjs(initialTask.dueDate) : null,
+    } as unknown as TaskFormValues;
+  }, [initialTask, user?.id, user?.username, user?.email]);
 
-  // Set form values when task data is loaded
-  React.useEffect(() => {
-    if (task) {
-      reset({
-        ...task,
-        projectId: String(task.projectId),
-        assigneeId: task.assigneeId ? String(task.assigneeId) : null,
-        creatorId: String(task.creatorId),
-        dueDate: task.dueDate ? dayjs(task.dueDate) : null,
-      });
-    }
-  }, [task, reset]);
+  // Handle task creation with proper type conversion
+  const handleCreateTask = async (apiData: TaskAPIData) => {
+    return await createTaskMutation.mutateAsync(apiData);
+  };
 
+  const handleUpdateTask = async (id: string, data: TaskAPIData) => {
+    return await updateTaskMutation.mutateAsync({ id, ...data });
+  };
 
-
-  // Mutations for create and update
-  const createMutation = useMutation({
-    mutationFn: (data: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'creator' | 'assignee'>) => 
-      createTask(data as any), // Type assertion needed due to API type mismatch
-    onSuccess: () => {
-      message.success('Task created successfully');
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      navigate('/tasks');
-    },
-    onError: () => {
-      message.error('Failed to create task');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (params: { id: string; data: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'creator' | 'assignee'>> }) => 
-      updateTask(params.id, params.data as any), // Type assertion needed due to API type mismatch
-    onSuccess: () => {
-      message.success('Task updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      navigate('/tasks');
-    },
-    onError: () => {
-      message.error('Failed to update task');
-    },
-  });
-
-  const onSubmit = async (formData: TaskFormValues) => {
+  const onSubmit: SubmitHandler<TaskFormValues> = async (formValues) => {
     try {
-      // Ensure we have the current user's ID
-      if (!user?.userId) {
-        message.error('User not authenticated or missing user ID');
-        return;
-      }
+      console.log('[TaskForm] onSubmit - Raw form values:', JSON.stringify(formValues, null, 2));
+      
+      // Log the types of each field
+      const fieldTypes = Object.entries(formValues).reduce((acc, [key, value]) => {
+        acc[key] = {
+          type: typeof value,
+          value: value,
+          isDayjs: value && typeof value === 'object' && 'isValid' in value && value.isValid?.()
+        };
+        return acc;
+      }, {} as Record<string, { type: string; value: any; isDayjs?: boolean }>);
+      
+      console.log('[TaskForm] Field types before conversion:', fieldTypes);
 
-      // Prepare the data for API submission
-      const apiData = {
-        title: formData.title,
-        description: formData.description || undefined,
-        status: formData.status,
-        priority: formData.priority,
-        projectId: Number(formData.projectId),
-        creatorId: user.userId, // Use the numeric userId from the auth context
-        assigneeId: formData.assigneeId === 'null' || formData.assigneeId === null || formData.assigneeId === undefined 
-          ? null 
-          : Number(formData.assigneeId),
-        dueDate: formData.dueDate ? formData.dueDate.format('YYYY-MM-DDTHH:mm:ss.SSS[Z]') : null,
+      const apiData: TaskAPIData = {
+        title: formValues.title,
+        description: formValues.description,
+        status: formValues.status,
+        priority: formValues.priority,
+        projectId: Number(formValues.projectId),
+        assigneeId: formValues.assigneeId ? Number(formValues.assigneeId) : null,
+        creatorId: Number(user?.id),
+        dueDate: formValues.dueDate ? formValues.dueDate.toISOString() : undefined,
       };
 
-      if (isEdit && id) {
-        await updateMutation.mutateAsync({ 
-          id, 
-          data: apiData as Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'creator' | 'assignee'>
-        });
+      console.log('[TaskForm] Processed API data:', apiData);
+
+      if (isEdit && initialTask?.id) {
+        console.log('[TaskForm] Updating task with ID:', initialTask.id);
+        await handleUpdateTask(initialTask.id, apiData);
       } else {
-        await createMutation.mutateAsync(apiData as Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'creator' | 'assignee'>);
+        console.log('[TaskForm] Creating new task');
+        await handleCreateTask(apiData);
       }
+      onSuccess?.();
     } catch (error) {
-      console.error('Form submission error:', error);
-      message.error('Failed to save task');
+      console.error('[TaskForm] Error submitting form:', error);
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...(error.response && { response: error.response.data })
+      });
+      message.error(`Failed to ${isEdit ? 'update' : 'create'} task`);
+      throw error;
     }
   };
 
-  if (isLoadingTask) {
+  if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-        <Typography.Title level={3}>
-          Loading...
-        </Typography.Title>
+        <Spin size="large" />
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <Alert
+        message="Error"
+        description={error.toString()}
+        type="error"
+        showIcon
+        style={{ marginBottom: 16 }}
+      />
+    );
+  }
+
   return (
-    <div>
-      <Typography.Title level={3} style={{ marginBottom: '24px' }}>
-        {isEdit ? 'Edit Task' : 'Create New Task'}
-      </Typography.Title>
-      <FormProvider {...methods}>
-        <Card>
-          <form onSubmit={handleSubmit(onSubmit as SubmitHandler<TaskFormValues>)}>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  label="Title"
-                  validateStatus={errors.title ? 'error' : ''}
-                  help={errors.title?.message}
-                >
-                  <Controller
-                    name="title"
-                    control={control}
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        placeholder="Enter task title"
-                        size="large"
-                      />
-                    )}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  label="Status"
-                  validateStatus={errors.status ? 'error' : ''}
-                  help={errors.status?.message}
-                >
-                  <Controller
-                    name="status"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        {...field}
-                        placeholder="Select status"
-                        options={statusOptions}
-                        size="large"
-                      />
-                    )}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
+    <FormProvider {...formMethods}>
+      <Card>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="Title"
+                validateStatus={errors.title ? 'error' : ''}
+                help={errors.title?.message}
+              >
+                <Controller
+                  name="title"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      placeholder="Enter task title"
+                      size="large"
+                    />
+                  )}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label="Status"
+                validateStatus={errors.status ? 'error' : ''}
+                help={errors.status?.message}
+              >
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      placeholder="Select status"
+                      options={statusOptions}
+                      size="large"
+                    />
+                  )}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
 
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  label="Priority"
-                  validateStatus={errors.priority ? 'error' : ''}
-                  help={errors.priority?.message}
-                >
-                  <Controller
-                    name="priority"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        {...field}
-                        placeholder="Select priority"
-                        options={priorityOptions}
-                        size="large"
-                      />
-                    )}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  label="Due Date"
-                  validateStatus={errors.dueDate ? 'error' : ''}
-                  help={errors.dueDate?.message}
-                >
-                  <Controller
-                    name="dueDate"
-                    control={control}
-                    render={({ field }) => (
-                      <DatePicker
-                        {...field}
-                        style={{ width: '100%' }}
-                        format="YYYY-MM-DD"
-                        size="large"
-                      />
-                    )}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="Priority"
+                validateStatus={errors.priority ? 'error' : ''}
+                help={errors.priority?.message}
+              >
+                <Controller
+                  name="priority"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      placeholder="Select priority"
+                      options={priorityOptions}
+                      size="large"
+                    />
+                  )}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label="Due Date"
+                validateStatus={errors.dueDate ? 'error' : ''}
+                help={errors.dueDate?.message}
+              >
+                <Controller
+                  name="dueDate"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      {...field}
+                      style={{ width: '100%' }}
+                      format="YYYY-MM-DD"
+                      size="large"
+                    />
+                  )}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
 
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  label="Project"
-                  validateStatus={errors.projectId ? 'error' : ''}
-                  help={errors.projectId?.message}
-                >
-                  <Controller
-                    name="projectId"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        {...field}
-                        loading={isLoadingProjects}
-                        placeholder="Select project"
-                        options={projects.map((project) => ({
-                          value: project.id.toString(),
-                          label: project.name,
-                        }))}
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="Project"
+                name="projectId"
+                rules={[{ required: true, message: 'Please select a project' }]}
+                help={errors.projectId?.message}
+                validateStatus={errors.projectId ? 'error' : ''}
+              >
+                <Controller
+                  name="projectId"
+                  control={control}
+                  render={({ field }) => {
+                    // Find the selected project to get its name
+                    const selectedProject = projects.find(p => 
+                      p.id.toString() === field.value?.toString()
+                    );
+                    
+                    // In create mode, show the project name from the projectId prop
+                    if (!isEdit && projectId) {
+                      const projectForCreate = projects.find(p => 
+                        p.id.toString() === projectId.toString()
+                      );
+                      return (
+                        <Input 
+                          value={projectForCreate?.name || projectId}
+                          size="large"
+                          disabled={true}
+                        />
+                      );
+                    }
+                    
+                    // In edit mode, show the project name if available
+                    return (
+                      <Input 
+                        value={selectedProject?.name || field.value || ''}
                         size="large"
+                        disabled={true}
                       />
-                    )}
+                    );
+                  }}
+                />
+              </Form.Item>
+            </Col>
+            {!isEdit && (
+              <Col span={12}>
+                <Form.Item label="Creator">
+                  <Input
+                    value={creator?.username || 'Unknown'}
+                    disabled
+                    size="large"
                   />
                 </Form.Item>
               </Col>
-              <Col span={12}>
-                <Form.Item
-                  label="Assignee"
-                  validateStatus={errors.assigneeId ? 'error' : ''}
-                  help={errors.assigneeId?.message}
-                >
-                  <Controller
-                    name="assigneeId"
-                    control={control}
-                    render={({ field: { value, onChange, ...field } }) => (
-                      <Select
-                        {...field}
-                        value={value || undefined}
-                        onChange={(val) => onChange(val || null)}
-                        loading={isLoadingUsers}
-                        placeholder="Select an assignee"
-                        optionFilterProp="label"
-                        showSearch
-                        allowClear
-                        size="large"
-                        options={users.map((user) => ({
-                          value: user.id.toString(),
-                          label: (
-                            <Space>
-                              <Avatar 
-                                style={{ 
-                                  backgroundColor: '#1890ff',
-                                  color: '#fff',
-                                  textTransform: 'uppercase'
-                                }}
-                              >
-                                {user.username ? user.username.charAt(0) : user.email.charAt(0)}
-                              </Avatar>
-                              <span>{user.username || user.email}</span>
-                            </Space>
-                          ),
-                          searchText: `${user.username || ''} ${user.email}`.toLowerCase(),
-                        }))}
-                        filterOption={(input, option) => {
-                          if (!option) return false;
-                          if (option.value === null) return true;
-                          return (option.searchText || '').includes(input.toLowerCase());
-                        }}
-                        optionRender={(option) => option.data.label}
-                        dropdownMatchSelectWidth={false}
-                        style={{ width: '100%' }}
-                      />
-                    )}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
+            )}
+          </Row>
 
-            <Form.Item
-              label="Description"
-              validateStatus={errors.description ? 'error' : ''}
-              help={errors.description?.message}
-            >
-              <Controller
-                name="description"
-                control={control}
-                render={({ field }) => (
-                  <Input.TextArea
-                    {...field}
-                    rows={4}
-                    placeholder="Enter task description"
-                  />
-                )}
-              />
-            </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="Assignee">
+                <Controller
+                  name="assigneeId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      showSearch
+                      placeholder="Select an assignee"
+                      optionFilterProp="children"
+                      filterOption={(input, option) =>
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                      options={users}
+                      loading={isLoadingUsers}
+                      size="large"
+                    />
+                  )}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
 
-            <div style={{ marginTop: '24px', textAlign: 'right' }}>
-              <Space>
-                <Button onClick={() => navigate(-1)}>Cancel</Button>
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
-                  loading={createMutation.isPending || updateMutation.isPending}
-                >
-                  {isEdit ? 'Update Task' : 'Create Task'}
-                </Button>
-              </Space>
-            </div>
-          </form>
-        </Card>
-      </FormProvider>
-    </div>
+          <Form.Item
+            label="Description"
+            validateStatus={errors.description ? 'error' : ''}
+            help={errors.description?.message}
+          >
+            <Controller
+              name="description"
+              control={control}
+              render={({ field }) => (
+                <Input.TextArea
+                  {...field}
+                  rows={4}
+                  placeholder="Enter task description"
+                />
+              )}
+            />
+          </Form.Item>
+
+          <div style={{ marginTop: '24px', textAlign: 'right' }}>
+            <Space>
+              <Button
+                onClick={onCancel}
+                disabled={createTaskMutation.isPending || updateTaskMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={createTaskMutation.isPending || updateTaskMutation.isPending}
+              >
+                {isEdit ? 'Update Task' : 'Create Task'}
+              </Button>
+            </Space>
+          </div>
+        </form>
+      </Card>
+    </FormProvider >
   );
 };
 

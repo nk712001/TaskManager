@@ -6,11 +6,21 @@ export interface UserRef {
   name?: string;
 }
 
+export interface Task {
+  id: string;
+  title: string;
+  status: string;
+  description?: string;
+  dueDate?: string;
+}
+
 export interface Project {
   id: string;  // Keep as string for frontend
   name: string;
   description?: string;
   ownerId: string;
+  ownerName?: string;
+  tasks?: Task[];
   owner?: UserRef;
   createdAt: string;
   updatedAt: string;
@@ -87,7 +97,13 @@ export const fetchProjectsForDropdown = async (): Promise<{value: string; label:
 
 export const fetchProjects = async (): Promise<Project[]> => {
   const { data } = await api.get('/v1/projects');
-  return data;
+  if (Array.isArray(data)) {
+    return data;
+  }
+  if (data && Array.isArray(data.data)) {
+    return data.data;
+  }
+  return [];
 };
 
 export const fetchProjectById = async (id: string): Promise<Project> => {

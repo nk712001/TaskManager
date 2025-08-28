@@ -15,6 +15,7 @@ const ProjectDetails = lazy(() => import('./pages/projects/ProjectDetails'));
 // Lazy load task components
 const TaskList = lazy(() => import('./pages/tasks/TaskList'));
 const TaskForm = lazy(() => import('./pages/tasks/TaskForm'));
+const TaskDetail = lazy(() => import('./pages/tasks/TaskDetail'));
 const Users = lazy(() => import('./pages/users/Users'));
 
 // Loading component for Suspense fallback
@@ -51,8 +52,9 @@ export default function AppRouter(): ReactNode {
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:id" element={<ProjectDetails />} />
             <Route path="/tasks" element={<TaskList />} />
-            <Route path="/tasks/new" element={<TaskForm />} />
-            <Route path="/tasks/:id/edit" element={<TaskForm isEdit />} />
+            <Route path="/tasks/create" element={<TaskForm />} />
+            <Route path="/tasks/edit/:id" element={<TaskForm isEdit />} />
+            <Route path="/tasks/:id" element={<TaskDetail />} />
             <Route path="/users" element={<Users />} />
           </Route>
 

@@ -159,4 +159,27 @@ public class TaskService {
     public void deleteTask(Long id) {
         taskRepository.deleteById(id);
     }
+    
+    @Transactional
+    public Task partialUpdateTask(Long id, Task.Status status, Long assigneeId) {
+        Task existingTask = taskRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+            
+        // Update status if provided
+        if (status != null) {
+            existingTask.setStatus(status);
+        }
+        
+        // Update assignee if provided
+        if (assigneeId != null) {
+            User assignee = userRepository.findById(assigneeId)
+                .orElseThrow(() -> new RuntimeException("Assignee not found with id: " + assigneeId));
+            existingTask.setAssignee(assignee);
+        } else if (assigneeId == null && existingTask.getAssignee() != null) {
+            // If assigneeId is explicitly set to null, remove the assignee
+            existingTask.setAssignee(null);
+        }
+        
+        return taskRepository.save(existingTask);
+    }
 }

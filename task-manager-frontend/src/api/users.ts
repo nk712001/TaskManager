@@ -82,19 +82,27 @@ export interface UserListResponse {
   totalPages: number;
 }
 
-export const fetchUsersForDropdown = async (): Promise<{value: string; label: string}[]> => {
-  const response = await api.get<UserListResponse>('/v1/users', {
-    params: {
-      page: 1,
-      limit: 100,
-      sort: 'username',
-    },
-  });
-  
-  return response.data.data.map(user => ({
-    value: user.id,
-    label: user.username || user.email,
-  }));
+export interface UserDropdownOption {
+  value: string;
+  label: string;
+}
+
+export const fetchUsersForDropdown = async (): Promise<UserDropdownOption[]> => {
+  try {
+    const response = await api.get<Array<{
+      id: number;
+      username: string;
+      roles: string[];
+    }>>('/v1/users');
+    
+    return response.data.map(user => ({
+      value: String(user.id), // Convert to string to match form field type
+      label: user.username, // Use username as the label
+    }));
+  } catch (error) {
+    console.error('Error fetching users for dropdown:', error);
+    return [];
+  }
 };
 
 export interface CreateUserData {
