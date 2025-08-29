@@ -317,7 +317,7 @@ const RecentActivityFeed: React.FC<RecentActivityFeedProps> = ({
       display: 'flex',
       flexDirection: 'column',
       padding: '16px 12px',
-      background: '#fafbfc',
+      background: 'var(--bg-color)',
       boxShadow: 'none',
       border: 'none',
       minHeight: 0,
@@ -343,8 +343,8 @@ const RecentActivityFeed: React.FC<RecentActivityFeedProps> = ({
           maxWidth: '1200px',
           borderRadius: 10,
           boxShadow: '0 1px 4px 0 rgba(0,0,0,0.03)',
-          border: '1px solid #e5e6e8',
-          background: '#fff',
+          border: '1px solid var(--border-color, #e5e6e8)',
+          background: 'var(--bg-color)',
           padding: '10px 6px 18px',
           minHeight: 180,
           marginBottom: 8,
@@ -404,7 +404,7 @@ const RecentActivityFeed: React.FC<RecentActivityFeedProps> = ({
                       whiteSpace: 'nowrap',
                       fontSize: 15,
                       fontWeight: 500,
-                      color: '#222',
+                      color: 'var(--text-color)',
                     }}
                   >
                     {getActivityContent(item)}
@@ -414,7 +414,7 @@ const RecentActivityFeed: React.FC<RecentActivityFeedProps> = ({
             </List.Item>
           )}
           locale={{
-            emptyText: <span style={{ color: '#bfbfbf', fontSize: 16 }}>No recent activities</span>
+            emptyText: <span style={{ color: 'var(--text-secondary, #bfbfbf)', fontSize: 16 }}>No recent activities</span>
           }}
         />
         {/* View More/Less Button */}
@@ -423,9 +423,9 @@ const RecentActivityFeed: React.FC<RecentActivityFeedProps> = ({
             <button
               onClick={() => setShowAll((prev) => !prev)}
               style={{
-                border: '1px solid #e5e6e8',
-                background: '#f5f5f5',
-                color: '#444',
+                border: '1px solid var(--border-color, #e5e6e8)',
+                background: 'var(--button-bg, var(--bg-color))',
+                color: 'var(--text-color)',
                 cursor: 'pointer',
                 fontWeight: 500,
                 fontSize: 14,

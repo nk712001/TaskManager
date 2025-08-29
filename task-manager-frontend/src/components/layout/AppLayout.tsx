@@ -26,7 +26,8 @@ interface StyledContentProps {
 
 const StyledContent = styled.div<StyledContentProps>`
   padding: 24px;
-  background: #fff;
+  background: var(--bg-color) !important;
+  color: var(--text-color) !important;
   min-height: calc(100vh - 64px);
   margin-left: ${({ isMobile }) => (isMobile ? 0 : '200px')};
   margin-top: 64px;

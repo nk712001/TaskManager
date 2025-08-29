@@ -1,0 +1,19 @@
+/* Light/Dark Theme CSS variables for AntD and custom UI */
+[data-theme="light"] {
+  --bg-color: #fff;
+  --text-color: #222;
+  --primary-color: #1677ff;
+}
+[data-theme="dark"] {
+  --bg-color: #18191a;
+  --text-color: #f0f2f5;
+  --primary-color: #1677ff;
+}
+body[data-theme="dark"] {
+  background: var(--bg-color) !important;
+  color: var(--text-color) !important;
+}
+body[data-theme="light"] {
+  background: var(--bg-color) !important;
+  color: var(--text-color) !important;
+}

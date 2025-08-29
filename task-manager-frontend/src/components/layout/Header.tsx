@@ -1,13 +1,15 @@
-import { Layout, Dropdown, Avatar, Menu } from 'antd';
-import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { Layout, Dropdown, Avatar, Menu, Switch, Tooltip } from 'antd';
+import { LogoutOutlined, UserOutlined, BulbOutlined, BulbFilled } from '@ant-design/icons';
 import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const { Header: AntHeader } = Layout;
 
 const StyledHeader = styled(AntHeader)`
   padding: 0 24px;
-  background: #fff;
+  background: var(--bg-color) !important;
+  color: var(--text-color) !important;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -30,6 +32,7 @@ interface HeaderProps {
 
 const Header: FC<HeaderProps> = ({ isMobile, onMenuClick }) => {
   const { logout, user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const menu = (
     <Menu>
@@ -53,7 +56,16 @@ const Header: FC<HeaderProps> = ({ isMobile, onMenuClick }) => {
           Task Manager
         </div>
       </div>
-      <div className="user-actions">
+      <div className="user-actions" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+        <Tooltip title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+          <Switch
+            checked={theme === 'dark'}
+            onChange={toggleTheme}
+            checkedChildren={<BulbFilled />}
+            unCheckedChildren={<BulbOutlined />}
+            aria-label="Toggle dark mode"
+          />
+        </Tooltip>
         <Dropdown overlay={menu} trigger={['click']}>
           <div style={{ cursor: 'pointer' }}>
             <Avatar icon={<UserOutlined />} style={{ marginRight: 8 }} />
